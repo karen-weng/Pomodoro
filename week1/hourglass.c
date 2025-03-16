@@ -6,7 +6,7 @@
 #define SWITCHES_BASE 0xFF200040 // Memory-mapped address for switches
 #define PIXEL_BUFFER_BASE 0xFF203020 // Memory-mapped address for pixel buffer
 
-volatile int *pixel_ctrl_ptr = (int *)PIXEL_BUFFER_BASE;
+// volatile int *pixel_ctrl_ptr = (int *)PIXEL_BUFFER_BASE;
 int pixel_buffer_start;
 bool hourglass_drawn = false;
 
@@ -40,20 +40,17 @@ void draw_line(int x0, int y0, int x1, int y1, short int color) {
 }
 
 void draw_hourglass_frame() {
-    draw_line(80, 50, 240, 50, 0xF800);   // Top horizontal line
-    draw_line(80, 50, 160, 125, 0xF800);  // Left diagonal down
-    draw_line(240, 50, 160, 125, 0xF800); // Right diagonal down
-    draw_line(80, 200, 160, 125, 0xF800); // Left diagonal up
-    draw_line(240, 200, 160, 125, 0xF800); // Right diagonal up
-    draw_line(80, 200, 240, 200, 0xF800); // Bottom horizontal line
+    draw_line(90, 50, 230, 50, 0xF800);   // Top horizontal line
+    draw_line(90, 50, 155, 120, 0xF800);  // Left diagonal down
+    draw_line(230, 50, 165, 120, 0xF800); // Right diagonal down
+
+    draw_line(155, 120, 165, 120, 0xF800); // Slight gap in middle
+
+    draw_line(155, 120, 90, 190, 0xF800); // Left diagonal up
+    draw_line(165, 120, 230, 190, 0xF800); // Right diagonal up
+    draw_line(90, 190, 230, 190, 0xF800); // Bottom horizontal line
 }
 
-void draw_sand(uint16_t progress) {
-    int fill_height = (progress * 95) / 1023; // Scale progress
-    for (int y = 125; y < 125 + fill_height; y++) {
-        draw_line(160 - (y - 125), y, 160 + (y - 125), y, 0xFFE0); // Yellow sand filling
-    }
-}
 
 void wait_for_v_sync() {
     volatile int *fbuf = (int *)PIXEL_BUFFER_BASE;
@@ -63,20 +60,55 @@ void wait_for_v_sync() {
         status = *(fbuf + 3);
     } while (status & 0x01);
 }
+void clear_screen()
+{
+    int y, x;
+    for (x = 0; x < 320; x++)
+    for (y = 0; y < 240; y++)
+    plot_pixel (x, y, 0);
+}
+
+void fill_trapezoid(int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3, short int color) {
+    // top left, top right, bottom right, bottom left
+    for (int y = y0; y <= y3; y++) {
+        int start_x = x0 + ((x3 - x0) * (y - y0)) / (y3 - y0);
+        int end_x = x1 + ((x2 - x1) * (y - y1)) / (y2 - y1);
+        draw_line(start_x, y, end_x, y, color);
+    }
+}
+
+void draw_sand(uint16_t progress) {
+    int fill_height = (progress * 95) / 1023; // Scale progress
+    fill_trapezoid(130, 120, 190, 120, 230, 190, 90, 190, 0xFFE0);
+    for (int y = 120; y < 120 + fill_height; y++) {
+        draw_line(160 - (y - 120), y, 160 + (y - 120), y, 0xFFE0); // Yellow sand filling
+    }
+}
 
 int main() {
+    volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     pixel_buffer_start = *pixel_ctrl_ptr;
     volatile uint16_t *switches = (uint16_t *)SWITCHES_BASE;
+    
+    clear_screen();
+
+
     
     if (!hourglass_drawn) {
         draw_hourglass_frame();
         hourglass_drawn = true;
     }
+
+    fill_trapezoid(90, 50, 230, 50, 165, 120, 155, 120, 0xFFE0);
     
-    while (1) {
-        uint16_t progress = *switches & 0x3FF;
-        draw_sand(progress);
-        wait_for_v_sync();
-    }
+    // while (1) {
+    //     uint16_t progress = *switches & 0x3FF;
+    //     draw_sand(progress);
+    //     wait_for_v_sync();
+    // }
     return 0;
 }
+
+
+
+
