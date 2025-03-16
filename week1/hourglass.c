@@ -71,6 +71,13 @@ void draw_hourglass_frame()
     draw_line(90, 190, 230, 190, 0xF800);  // Bottom horizontal line
 }
 
+void draw_hourglass_frame_top()
+{
+    draw_line(90, 50, 230, 50, 0xF800);   // Top horizontal line
+    draw_line(90, 50, 155, 120, 0xF800);  // Left diagonal down
+    draw_line(230, 50, 165, 120, 0xF800); // Right diagonal down
+}
+
 void wait_for_v_sync()
 {
     volatile int *fbuf = (int *)0xFF203020;
@@ -126,73 +133,87 @@ void get_hourglass_bounds(int y, int *x_left, int *x_right)
     }
 }
 
-
-void draw_initial_yellow_trapezoid() {
+void draw_initial_yellow_trapezoid()
+{
     fill_trapezoid(90, 50, 230, 50, 165, 120, 155, 120, 0xFFE0); // Draw once
 }
 
-void erase_sand_sliver(int y) {
+void erase_sand_sliver(int y)
+{
     int x_left, x_right;
     // get_hourglass_bounds(y, &x_left, &x_right);
     // Clear the current sand row by drawing the background color (0x0)
-    draw_line(90, y-2, 230, y-2, 0x0);
-    draw_line(90, y-1, 230, y-1, 0x0);
+    draw_line(90, y - 2, 230, y - 2, 0x0);
+    draw_line(90, y - 1, 230, y - 1, 0x0);
     draw_line(90, y, 230, y, 0x0);
-    
-    
 }
 
 int main()
 {
     volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
-    pixel_buffer_start = *pixel_ctrl_ptr;
-    // volatile uint16_t *switches = (uint16_t *)SWITCHES_BASE;
-    *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
-    /* now, swap the front/back buffers, to set the front buffer location */
-    wait_for_v_sync();
-    /* initialize a pointer to the pixel buffer, used by drawing functions */
-    pixel_buffer_start = *pixel_ctrl_ptr;
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
 
-    /* set back pixel buffer to Buffer 2 */
-    *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
-    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
+    // Set up double buffering
+    *(pixel_ctrl_ptr + 1) = (int)&Buffer1; // Set back buffer to Buffer1
+    wait_for_v_sync();                     // Wait for swap
+    pixel_buffer_start = *pixel_ctrl_ptr;  // Get front buffer address
+    clear_screen();                        // Clear front buffer
 
-    clear_screen();
+    draw_hourglass_frame(); // Draw initial frame
 
-    // if (!hourglass_drawn) {
-    //     draw_hourglass_frame();
-    //     hourglass_drawn = true;
-    // }
+    // Set back buffer to Buffer2
+    *(pixel_ctrl_ptr + 1) = (int)&Buffer2;
+
+    // Draw frame in back buffer
     draw_hourglass_frame();
 
-    // int y_trap = 50;
-    int x_trap_left, x_trap_right;
+    // Variables to track sand levels
+    int top_level = 50;     // Start with top part full (50 is the top y-coordinate)
+    int bottom_level = 190; // Bottom part empty (190 is the bottom y-coordinate)
 
     while (1)
     {
-        // int y_trap = 50;
-        // get_hourglass_bounds(y_trap, &x_trap_left, &x_trap_right);
-        draw_initial_yellow_trapezoid ();
-        for (int y_trap = 50; y_trap <= 120; y_trap++)
-        { // Using simple increment for smoother filling
-            		
-            erase_sand_sliver(y_trap); // Erase the current sand sliver
-            draw_hourglass_frame();
+        // Wait for previous frame to finish
+        wait_for_v_sync();
 
-            // get_hourglass_bounds(y_trap, &x_trap_left, &x_trap_right);
-            // fill_trapezoid(x_trap_left, y_trap-3, x_trap_right, y_trap-1, 165, 120, 155, 120, 0x0);
-            // fill_trapezoid(x_trap_left, y_trap, x_trap_right, y_trap, 165, 120, 155, 120, 0xFFE0);
-            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-            wait_for_v_sync();	
-            // clear_screen();
+        // Switch to the next back buffer
+        pixel_buffer_start = *(pixel_ctrl_ptr + 1);
+
+        // Clear the screen (or just the hourglass area)
+        clear_screen();
+
+        // Draw the hourglass frame
+        draw_hourglass_frame();
+
+        // Update animation - move sand from top to bottom
+        if (top_level < 120)
+        {                           // If there's still sand in the top half
+            top_level++;            // Reduce sand in top
+            if (bottom_level > 120) // If there's room in bottom half
+                bottom_level--;     // Add sand to bottom
         }
+
+        // Reset animation when finished
+        if (top_level >= 120 && bottom_level <= 120)
+        {
+            top_level = 50;
+            bottom_level = 190;
+        }
+
+        // Draw sand in top half (from top_level to middle)
+        for (int y = top_level; y < 120; y++)
+        {
+            int x_left, x_right;
+            get_hourglass_bounds(y, &x_left, &x_right);
+            draw_line(x_left, y, x_right, y, 0xFFE0); // Yellow sand
+        }
+
+        // // Draw sand in bottom half (from middle to bottom_level)
+        // for (int y = 120; y < bottom_level; y++) {
+        //     int x_left, x_right;
+        //     get_hourglass_bounds(y, &x_left, &x_right);
+        //     draw_line(x_left, y, x_right, y, 0xFFE0); // Yellow sand
+        // }
     }
 
-    // while (1) {
-    //     uint16_t progress = *switches & 0x3FF;
-    //     draw_sand(progress);
-    //     wait_for_v_sync();
-    // }
     return 0;
 }
