@@ -9,6 +9,8 @@
 
 // volatile int *pixel_ctrl_ptr = (int *)PIXEL_BUFFER_BASE;
 int pixel_buffer_start;
+short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+short int Buffer2[240][512];
 bool hourglass_drawn = false;
 
 void plot_pixel(int x, int y, short int color)
@@ -124,11 +126,37 @@ void get_hourglass_bounds(int y, int *x_left, int *x_right)
     }
 }
 
+
+void draw_initial_yellow_trapezoid() {
+    fill_trapezoid(90, 50, 230, 50, 165, 120, 155, 120, 0xFFE0); // Draw once
+}
+
+void erase_sand_sliver(int y) {
+    int x_left, x_right;
+    // get_hourglass_bounds(y, &x_left, &x_right);
+    // Clear the current sand row by drawing the background color (0x0)
+    draw_line(90, y-2, 230, y-2, 0x0);
+    draw_line(90, y-1, 230, y-1, 0x0);
+    draw_line(90, y, 230, y, 0x0);
+    
+    
+}
+
 int main()
 {
     volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
     pixel_buffer_start = *pixel_ctrl_ptr;
     // volatile uint16_t *switches = (uint16_t *)SWITCHES_BASE;
+    *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
+    /* now, swap the front/back buffers, to set the front buffer location */
+    wait_for_v_sync();
+    /* initialize a pointer to the pixel buffer, used by drawing functions */
+    pixel_buffer_start = *pixel_ctrl_ptr;
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+
+    /* set back pixel buffer to Buffer 2 */
+    *(pixel_ctrl_ptr + 1) = (int) &Buffer2;
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
 
     clear_screen();
 
@@ -136,7 +164,6 @@ int main()
     //     draw_hourglass_frame();
     //     hourglass_drawn = true;
     // }
-
     draw_hourglass_frame();
 
     // int y_trap = 50;
@@ -144,13 +171,21 @@ int main()
 
     while (1)
     {
+        // int y_trap = 50;
+        // get_hourglass_bounds(y_trap, &x_trap_left, &x_trap_right);
+        draw_initial_yellow_trapezoid ();
         for (int y_trap = 50; y_trap <= 120; y_trap++)
         { // Using simple increment for smoother filling
-			clear_screen();
-			draw_hourglass_frame();
-            get_hourglass_bounds(y_trap, &x_trap_left, &x_trap_right);
-            fill_trapezoid(x_trap_left, y_trap, x_trap_right, y_trap, 165, 120, 155, 120, 0xFFE0);
-            wait_for_v_sync();			
+            		
+            erase_sand_sliver(y_trap); // Erase the current sand sliver
+            draw_hourglass_frame();
+
+            // get_hourglass_bounds(y_trap, &x_trap_left, &x_trap_right);
+            // fill_trapezoid(x_trap_left, y_trap-3, x_trap_right, y_trap-1, 165, 120, 155, 120, 0x0);
+            // fill_trapezoid(x_trap_left, y_trap, x_trap_right, y_trap, 165, 120, 155, 120, 0xFFE0);
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+            wait_for_v_sync();	
+            // clear_screen();
         }
     }
 
