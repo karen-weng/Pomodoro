@@ -61,21 +61,14 @@ void draw_line(int x0, int y0, int x1, int y1, short int color)
 void draw_hourglass_frame()
 {
     draw_line(90, 50, 230, 50, 0xF800);   // Top horizontal line
-    draw_line(90, 50, 155, 120, 0xF800);  // Left diagonal down
-    draw_line(230, 50, 165, 120, 0xF800); // Right diagonal down
+    draw_line(90, 50, 157, 120, 0xF800);  // Left diagonal down
+    draw_line(230, 50, 163, 120, 0xF800); // Right diagonal down
 
-    draw_line(155, 120, 165, 120, 0xF800); // Slight gap in middle
+    draw_line(157, 120, 163, 120, 0xF800); // Slight gap in middle
 
-    draw_line(155, 120, 90, 190, 0xF800);  // Left diagonal up
-    draw_line(165, 120, 230, 190, 0xF800); // Right diagonal up
+    draw_line(157, 120, 90, 190, 0xF800);  // Left diagonal up
+    draw_line(163, 120, 230, 190, 0xF800); // Right diagonal up
     draw_line(90, 190, 230, 190, 0xF800);  // Bottom horizontal line
-}
-
-void draw_hourglass_frame_top()
-{
-    draw_line(90, 50, 230, 50, 0xF800);   // Top horizontal line
-    draw_line(90, 50, 155, 120, 0xF800);  // Left diagonal down
-    draw_line(230, 50, 165, 120, 0xF800); // Right diagonal down
 }
 
 void wait_for_v_sync()
@@ -98,76 +91,40 @@ void clear_screen()
             plot_pixel(x, y, 0);
 }
 
-void fill_trapezoid(int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3, short int color)
-{
-    // top left, top right, bottom right, bottom left
-    for (int y = y0; y <= y3; y++)
-    {
-        int start_x = x0 + ((x3 - x0) * (y - y0)) / (y3 - y0);
-        int end_x = x1 + ((x2 - x1) * (y - y1)) / (y2 - y1);
-        draw_line(start_x, y, end_x, y, color);
-    }
-}
-
-void draw_sand(uint16_t progress)
-{
-    int fill_height = (progress * 95) / 1023; // Scale progress
-    fill_trapezoid(130, 120, 190, 120, 230, 190, 90, 190, 0xFFE0);
-    for (int y = 120; y < 120 + fill_height; y++)
-    {
-        draw_line(160 - (y - 120), y, 160 + (y - 120), y, 0xFFE0); // Yellow sand filling
-    }
-}
-
 void get_hourglass_bounds(int y, int *x_left, int *x_right)
 {
     if (y < 120)
     { // Upper part of the hourglass
-        *x_left = 90 + ((155 - 90) * (y - 50)) / (120 - 50);
-        *x_right = 230 + ((165 - 230) * (y - 50)) / (120 - 50);
+        *x_left = 90 + ((157 - 90) * (y - 50)) / (120 - 50);
+        *x_right = 230 + ((163 - 230) * (y - 50)) / (120 - 50);
     }
     else
     { // Lower part of the hourglass
-        *x_left = 155 + ((90 - 155) * (y - 120)) / (190 - 120);
-        *x_right = 165 + ((230 - 165) * (y - 120)) / (190 - 120);
+        *x_left = 157 + ((90 - 157) * (y - 120)) / (190 - 120);
+        *x_right = 163 + ((230 - 163) * (y - 120)) / (190 - 120);
     }
-}
-
-void draw_initial_yellow_trapezoid()
-{
-    fill_trapezoid(90, 50, 230, 50, 165, 120, 155, 120, 0xFFE0); // Draw once
-}
-
-void erase_sand_sliver(int y)
-{
-    int x_left, x_right;
-    // get_hourglass_bounds(y, &x_left, &x_right);
-    // Clear the current sand row by drawing the background color (0x0)
-    draw_line(90, y - 2, 230, y - 2, 0x0);
-    draw_line(90, y - 1, 230, y - 1, 0x0);
-    draw_line(90, y, 230, y, 0x0);
 }
 
 int main()
 {
     volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
-    
-    // Animation timing configuration
-    const int ANIMATION_TIME_SECONDS = 30;        // Total animation duration in seconds
-    const int VSYNC_FREQUENCY = 60;               // VSync frequency in Hz (60 FPS)
-    const int TOTAL_FRAMES = ANIMATION_TIME_SECONDS * VSYNC_FREQUENCY;
-    
-    // Calculate how many VSync events should occur between sand level updates
-    const int SAND_HEIGHT_CHANGE = 70;            // Total pixels the sand level changes (120-50)
-    const int VSYNCS_PER_UPDATE = TOTAL_FRAMES / SAND_HEIGHT_CHANGE;
-    
-    // Set up double buffering
-    *(pixel_ctrl_ptr + 1) = (int)&Buffer1;        // Set back buffer to Buffer1
-    wait_for_v_sync();                            // Wait for swap
-    pixel_buffer_start = *pixel_ctrl_ptr;         // Get front buffer address
-    clear_screen();                               // Clear front buffer
 
-    draw_hourglass_frame();                       // Draw initial frame
+    // Animation timing configuration
+    const int ANIMATION_TIME_SECONDS = 8; // Total animation duration in seconds
+    const int VSYNC_FREQUENCY = 60;       // VSync frequency in Hz (60 FPS)
+    const int TOTAL_FRAMES = ANIMATION_TIME_SECONDS * VSYNC_FREQUENCY;
+
+    // Calculate how many VSync events should occur between sand level updates
+    const int SAND_HEIGHT_CHANGE = 60; // Total pixels the sand level changes (120-50)
+    const int VSYNCS_PER_UPDATE = TOTAL_FRAMES / SAND_HEIGHT_CHANGE;
+
+    // Set up double buffering
+    *(pixel_ctrl_ptr + 1) = (int)&Buffer1; // Set back buffer to Buffer1
+    wait_for_v_sync();                     // Wait for swap
+    pixel_buffer_start = *pixel_ctrl_ptr;  // Get front buffer address
+    clear_screen();                        // Clear front buffer
+
+    draw_hourglass_frame(); // Draw initial frame
 
     // Set back buffer to Buffer2
     *(pixel_ctrl_ptr + 1) = (int)&Buffer2;
@@ -176,21 +133,26 @@ int main()
     draw_hourglass_frame();
 
     // Variables to track sand levels
-    int top_level = 50;                           // Start with top part full
-    int triangle_height = 0;                      // Height of the bottom triangle (0 at start)
-    int triangle_width = 0;                       // Width of triangle base (0 at start)
-    int vsync_counter = 0;                        // Counter for VSync events
-    int max_triangle_height = 70;                 // Maximum height of the triangle
-    
+    int top_level = 60;           // Start with top part full
+    int triangle_height = 0;      // Height of the bottom triangle (0 at start)
+    int triangle_width = 0;       // Width of triangle base (0 at start)
+    int vsync_counter = 0;        // Counter for VSync events
+    int max_triangle_height = 60; // Maximum height of the triangle
+
+    // Add delay counter and set delay amount (1 sec = 60 frames at 60fps)
+    int bottom_delay_frames = 30; // 0.5 second delay
+    int bottom_delay_counter = 0; // Start at 0
+    bool bottom_filling_started = false;
+
     // Get hourglass bottom width for triangle base
     int bottom_left, bottom_right;
     get_hourglass_bounds(190, &bottom_left, &bottom_right);
-    int max_width = bottom_right - bottom_left;   // Maximum possible width
-    
+    int max_width = bottom_right - bottom_left; // Maximum possible width
+
     // Bottom triangle properties
-    int base_y = 190;                             // Base of triangle is at the bottom of hourglass
+    int base_y = 190;                                // Base of triangle is at the bottom of hourglass
     int center_x = (bottom_left + bottom_right) / 2; // Center of hourglass bottom
-    
+
     while (1)
     {
         // Wait for previous frame to finish
@@ -207,27 +169,47 @@ int main()
         draw_hourglass_frame();
 
         // Update animation only when enough VSync events have passed
-        if (vsync_counter >= VSYNCS_PER_UPDATE) {
-            vsync_counter = 0;  // Reset counter
-            
-            // Update sand levels if animation is not complete
-            if (top_level < 120) {
-                top_level++;                      // Reduce sand in top
-                triangle_height++;                // Increase triangle height
-                
-                // Increase width proportionally to height
-                // This ensures we grow both dimensions at same rate
-                triangle_width = (max_width * triangle_height) / max_triangle_height;
+        if (vsync_counter >= VSYNCS_PER_UPDATE)
+        {
+            vsync_counter = 0; // Reset counter
+
+            // Update top sand level if animation is not complete
+            if (top_level < 120)
+            {
+                top_level++; // Reduce sand in top
+
+                // If bottom filling hasn't started yet, increment delay counter
+                if (!bottom_filling_started)
+                {
+                    bottom_delay_counter++;
+
+                    // Check if delay period has passed
+                    if (bottom_delay_counter >= bottom_delay_frames / VSYNCS_PER_UPDATE)
+                    {
+                        bottom_filling_started = true;
+                    }
+                }
+
+                // Only update triangle if delay has passed
+                if (bottom_filling_started)
+                {
+                    triangle_height++; // Increase triangle height
+
+                    // Increase width proportionally to height
+                    triangle_width = (max_width * triangle_height) / max_triangle_height;
+                }
             }
         }
 
         // Reset animation when finished
         if (top_level >= 120 && triangle_height >= max_triangle_height)
         {
-            top_level = 50;
+            top_level = 60;
             triangle_height = 0;
             triangle_width = 0;
             vsync_counter = 0;
+            bottom_delay_counter = 0;
+            bottom_filling_started = false;
         }
 
         // Draw sand in top half (from top_level to middle)
@@ -239,22 +221,24 @@ int main()
         }
 
         // Draw triangle at the bottom
-        if (triangle_height > 0) {
+        if (triangle_height > 0)
+        {
             // Calculate the apex y-position based on current triangle height
             int apex_y = base_y - triangle_height;
-            
+
             // Draw each line of the triangle, narrowing as we go up from the base
-            for (int y = base_y; y >= apex_y; y--) {
+            for (int y = base_y; y >= apex_y; y--)
+            {
                 // Calculate width of this line based on y position
                 float progress = (float)(base_y - y) / triangle_height;
-                
+
                 // Width narrows from current triangle width to a point at the apex
                 int line_width = (int)(triangle_width * (1.0 - progress));
-                
+
                 // Center the line in the bottom of the hourglass
                 int line_left = center_x - line_width / 2;
                 int line_right = center_x + line_width / 2;
-                
+
                 // Draw the line for this row of the triangle
                 draw_line(line_left, y, line_right, y, 0xFFE0); // Yellow sand
             }
@@ -263,4 +247,3 @@ int main()
 
     return 0;
 }
-
