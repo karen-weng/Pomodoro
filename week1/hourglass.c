@@ -140,7 +140,7 @@ int main()
     int max_triangle_height = 60; // Maximum height of the triangle
 
     // Add delay counter and set delay amount (1 sec = 60 frames at 60fps)
-    int bottom_delay_frames = 30; // 0.5 second delay
+    int bottom_delay_frames = 45; // 0.5 second delay
     int bottom_delay_counter = 0; // Start at 0
     bool bottom_filling_started = false;
 
@@ -174,7 +174,7 @@ int main()
             vsync_counter = 0; // Reset counter
 
             // Update top sand level if animation is not complete
-            if (top_level < 120)
+            if (top_level < 120 + 15)
             {
                 top_level++; // Reduce sand in top
 
@@ -202,7 +202,7 @@ int main()
         }
 
         // Reset animation when finished
-        if (top_level >= 120 && triangle_height >= max_triangle_height)
+        if (triangle_height >= max_triangle_height)
         {
             top_level = 60;
             triangle_height = 0;
@@ -212,12 +212,16 @@ int main()
             bottom_filling_started = false;
         }
 
-        // Draw sand in top half (from top_level to middle)
-        for (int y = top_level; y < 120; y++)
+        if (top_level < 120)
         {
-            int x_left, x_right;
-            get_hourglass_bounds(y, &x_left, &x_right);
-            draw_line(x_left, y, x_right, y, 0xFFE0); // Yellow sand
+
+            // Draw sand in top half (from top_level to middle)
+            for (int y = top_level; y < 120; y++)
+            {
+                int x_left, x_right;
+                get_hourglass_bounds(y, &x_left, &x_right);
+                draw_line(x_left, y, x_right, y, 0xFFE0); // Yellow sand
+            }
         }
 
         // Draw triangle at the bottom
@@ -242,6 +246,26 @@ int main()
                 // Draw the line for this row of the triangle
                 draw_line(line_left, y, line_right, y, 0xFFE0); // Yellow sand
             }
+        }
+
+        if (!bottom_filling_started)
+        {
+            draw_line(160, 120, 160, 120 + bottom_delay_counter * 15, 0xFFE0);
+            draw_line(159, 120, 159, 120 + bottom_delay_counter * 15, 0xFFE0);
+            draw_line(161, 120, 161, 120 + bottom_delay_counter * 15, 0xFFE0);
+        }
+
+        else if (top_level >= 120)
+        {
+            draw_line(160, (top_level - 120) * 10 + 120, 160, 190, 0xFFE0);
+            draw_line(159, (top_level - 120) * 10 + 120, 159, 190, 0xFFE0);
+            draw_line(161, (top_level - 120) * 10 + 120, 161, 190, 0xFFE0);
+        }
+        else
+        {
+            draw_line(160, 120, 160, 190, 0xFFE0);
+            draw_line(159, 120, 159, 190, 0xFFE0);
+            draw_line(161, 120, 161, 190, 0xFFE0);
         }
     }
 
