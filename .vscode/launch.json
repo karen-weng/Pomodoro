@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/karenweng/Documents/GitHub/Pomodoro/week1",
+      "program": "/Users/karenweng/Documents/GitHub/Pomodoro/week1/build/Debug/outDebug"
+    }
+  ]
+}
