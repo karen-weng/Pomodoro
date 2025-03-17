@@ -31,8 +31,9 @@ _start:
     # do any non config set up
     li sp, 0x200000 # initialize stack pointer
     la t0, pom_start_val
-    lw s0, (t0) # s0 is min countdown
-    mv s1, x0   # s1 is sec countdown
+    lw s0, (t0)
+	la s1, sec_countdown
+	sw s0, (s1)	# s1 is sec countdown
 
     la s5, LEDs
     
