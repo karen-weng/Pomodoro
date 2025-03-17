@@ -60,15 +60,15 @@ void draw_line(int x0, int y0, int x1, int y1, short int color)
 
 void draw_hourglass_frame()
 {
-    draw_line(90, 50, 230, 50, 0xF800);   // Top horizontal line
-    draw_line(90, 50, 157, 120, 0xF800);  // Left diagonal down
-    draw_line(230, 50, 163, 120, 0xF800); // Right diagonal down
+    draw_line(90, 50, 230, 50, 0x8494);   // Top horizontal line
+    draw_line(90, 50, 157, 120, 0x8494);  // Left diagonal down
+    draw_line(230, 50, 163, 120, 0x8494); // Right diagonal down
 
-    draw_line(157, 120, 163, 120, 0xF800); // Slight gap in middle
+    draw_line(157, 120, 163, 120, 0x8494); // Slight gap in middle
 
-    draw_line(157, 120, 90, 190, 0xF800);  // Left diagonal up
-    draw_line(163, 120, 230, 190, 0xF800); // Right diagonal up
-    draw_line(90, 190, 230, 190, 0xF800);  // Bottom horizontal line
+    draw_line(157, 120, 90, 190, 0x8494);  // Left diagonal up
+    draw_line(163, 120, 230, 190, 0x8494); // Right diagonal up
+    draw_line(90, 190, 230, 190, 0x8494);  // Bottom horizontal line
 }
 
 void wait_for_v_sync()
@@ -220,7 +220,7 @@ int main()
             {
                 int x_left, x_right;
                 get_hourglass_bounds(y, &x_left, &x_right);
-                draw_line(x_left, y, x_right, y, 0xFFE0); // Yellow sand
+                draw_line(x_left, y, x_right, y, 0xF691); // Yellow sand
             }
         }
 
@@ -244,30 +244,34 @@ int main()
                 int line_right = center_x + line_width / 2;
 
                 // Draw the line for this row of the triangle
-                draw_line(line_left, y, line_right, y, 0xFFE0); // Yellow sand
+                draw_line(line_left, y, line_right, y, 0xF691); // Yellow sand
             }
         }
 
         if (!bottom_filling_started)
         {
-            draw_line(160, 120, 160, 120 + bottom_delay_counter * 15, 0xFFE0);
-            draw_line(159, 120, 159, 120 + bottom_delay_counter * 15, 0xFFE0);
-            draw_line(161, 120, 161, 120 + bottom_delay_counter * 15, 0xFFE0);
+            draw_line(160, 120, 160, 120 + bottom_delay_counter * 15, 0xF691);
+            draw_line(159, 120, 159, 120 + bottom_delay_counter * 15, 0xF691);
+            draw_line(161, 120, 161, 120 + bottom_delay_counter * 15, 0xF691);
         }
 
         else if (top_level >= 120)
         {
-            draw_line(160, (top_level - 120) * 10 + 120, 160, 190, 0xFFE0);
-            draw_line(159, (top_level - 120) * 10 + 120, 159, 190, 0xFFE0);
-            draw_line(161, (top_level - 120) * 10 + 120, 161, 190, 0xFFE0);
+            draw_line(160, (top_level - 120) * 10 + 120, 160, 190, 0xF691);
+            draw_line(159, (top_level - 120) * 10 + 120, 159, 190, 0xF691);
+            draw_line(161, (top_level - 120) * 10 + 120, 161, 190, 0xF691);
         }
         else
         {
-            draw_line(160, 120, 160, 190, 0xFFE0);
-            draw_line(159, 120, 159, 190, 0xFFE0);
-            draw_line(161, 120, 161, 190, 0xFFE0);
+            draw_line(160, 120, 160, 190, 0xF691);
+            draw_line(159, 120, 159, 190, 0xF691);
+            draw_line(161, 120, 161, 190, 0xF691);
         }
     }
 
     return 0;
 }
+
+// next steps
+// add a purely draw horizontal line, and vertical line
+// make it not erase screen each time.. draw back over top and draw yellow at bottom
