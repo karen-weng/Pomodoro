@@ -118,93 +118,11 @@ int main(void) {
     // enable Nios V interrupts
     __asm__ volatile ("csrs mstatus, %0" :: "r"(mstatus_value));
 
+    *HEX3_HEX0_ptr = 0x3f; // show 0 on HEX0
+
     sec_time = pom_start_val;
 
     while (1) {
         *LEDR_ptr = sec_time;
     }
-}
-
-/*******************************************************************
- * Trap handler: determine what caused the interrupt and calls the
- * appropriate subroutine.
- ******************************************************************/
-void handler(void) {
-    int mcause_value;
-    __asm__ volatile ("csrr %0, mcause" : "=r"(mcause_value));
-    if (mcause_value == 0x80000010) // interval timer
-        itimer_ISR();
-    else if (mcause_value == 0x80000012) // KEY port
-        KEY_ISR();
-    // else, ignore the trap
-    else {
-        printf("Unexpected interrupt at %d.", mcause_value);
-    }
-}
-
-// FPGA interval timer interrupt service routine
-void itimer_ISR(void) {
-    volatile int *timer_ptr = (int *) TIMER_BASE;
-    *timer_ptr = 0; // clear interrupt
-    sec_time -= 1;  // decrease pom timer counter
-    if (sec_time==0) {  // if pom timer done, on 'stop' mode
-        key_mode = 3;
-        *(timer_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
-    }
-}
-
-// KEY port interrupt service routine
-void KEY_ISR(void) {
-    int pressed_key;
-    volatile int *KEY_ptr = (int *) KEY_BASE;
-    volatile int *timer_ptr = (int *) TIMER_BASE;
-    pressed_key = *(KEY_ptr + 3); // read EdgeCapture & get key value
-    *(KEY_ptr + 3) = pressed_key; // clear EdgeCapture register
-    if (pressed_key==1) {   // user presses start/pause/stop
-        if (key_mode==1) {  // start
-            *(timer_ptr + 0x1) = 0x7;   // 0b0111 (start, cont, ito)
-            key_mode = 2;
-        } else if (key_mode==2) {   // pause
-            *(timer_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
-            key_mode = 1;
-        } else if (key_mode==3) {   // update next countdown start value
-            study_mode = !study_mode;
-            study_session_count += 1;
-            if (study_mode) {
-                sec_time = pom_start_val;
-            } else if (!study_mode && study_session_count%4!=0) {
-                sec_time = small_break_start_val;
-            } else if (!study_mode) {
-                sec_time = big_break_start_val;
-            } else {
-                printf("Unexpected study mode %d.", study_mode);
-            }
-            key_mode = 1;
-        } else {
-            printf("Unexpected key mode %d.", key_mode);
-        }
-    } else if (pressed_key==2) {
-
-    } else {
-        printf("Unexpected key %d pressed.", pressed_key);
-    }
-}
-
-// Configure the FPGA interval timer
-void set_itimer(void) {
-    volatile int *timer_ptr = (int *) TIMER_BASE;
-    // set the interval timer period
-    int load_val = clock_rate;
-    *(timer_ptr + 0x2) = (load_val & 0xFFFF);
-    *(timer_ptr + 0x3) = (load_val >> 16) & 0xFFFF;
-    *(timer_ptr + 0x0) = 0;
-    // turn on CONT & ITO bits (do not start)
-    *(timer_ptr + 0x1) = 0x3; // STOP = 1, START = 1, CONT = 1, ITO = 1
-}
-
-// Configure the KEY port
-void set_KEY(void) {
-    volatile int *KEY_ptr = (int *) KEY_BASE;
-    *(KEY_ptr + 3) = 0xF; // clear EdgeCapture register
-    *(KEY_ptr + 2) = 0x3; // enable interrupts for keys 0-1
 }
