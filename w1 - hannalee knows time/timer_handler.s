@@ -117,7 +117,7 @@ key0_start:	# start/pause/stop key
 	bne s2, t2, key0_pause
     li t1, 0b111
     sw t1, T_CONTROL(s3)    # set up interrupts (ITO) & continuous operation of timer (CONT)
-	li s2, 2
+	addi s2, s2, 1
 	j key_interrupt
 	
 key0_pause:
@@ -125,9 +125,9 @@ key0_pause:
 	bne s2, t2, key0_stop
 	li t0, 0b1011
 	sw t0, T_CONTROL(s3)
-	li s2, 1
+	addi s2, s2, -1
 	j key_interrupt
-	
+
 key0_stop:
 	li t2, 3
 	bne s2, t2, problem
@@ -138,17 +138,31 @@ key0_stop:
     sw x0, T_STATUS(s3) # reset timeout (TO) signal
     li t1, 0b11
     sw t1, T_CONTROL(s3)
-	li s2, 1
-	la t0, pom_start_val
+	addi s2, s2, 1
+    li t0, 6
+    bne s1, t0, key0_stop_break
+key0_stop_pom:
+	la t0, break_start_val
     lw t1, (t0)
 	la t2, sec_time
 	sw t1, (t2)
 	j key_interrupt
-	
+key0_stop_break:
+	la t0, pom_start_val
+    lw t1, (t0)
+	la t2, sec_time
+	sw t1, (t2)
+
 key1_skip:	# skip key
 	j key_interrupt
 
+fix_key_mode:
+    addi s2, s2, -6
+    j key_interrupt
+
 key_interrupt:
+    li t0, 6
+    bgt s2, t0, fix_key_mode
 	sw s2, (s1)
 	li t0, 0xF
 	la t1, KEYS
@@ -177,7 +191,6 @@ config_keys:
     li t1, 0b11
     sw t1, K_INTERRUPT(t0)   # set up interruptmask to enabl keys 0-1
     ret
-
 
 config_processor:
     li t0, 1
