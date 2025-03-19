@@ -140,7 +140,7 @@ int main()
     int max_triangle_height = 60; // Maximum height of the triangle
 
     // Add delay counter and set delay amount (1 sec = 60 frames at 60fps)
-    int bottom_delay_frames = 45; // 0.5 second delay
+    int bottom_delay_frames = 30; // 0.5 second delay
     int bottom_delay_counter = 0; // Start at 0
     bool bottom_filling_started = false;
 
