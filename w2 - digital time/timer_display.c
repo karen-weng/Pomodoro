@@ -63,17 +63,7 @@ void set_KEY(void);
 void itimer_ISR(void);
 void KEY_ISR(void);
 
-void plot_pixel(int x, int y, short int line_color); // plots one pixel
-void clear_screen(); // clears whole screen
-void swap(int *num1, int *num2);
-void draw_line(int x0,int  y0,int x1,int y1, short int colour);
-void wait_for_v_sync();
-void draw_box(int x, int y, short int colour) ;
-
-
-int pixel_buffer_start; // global variable
-short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
-short int Buffer2[240][512];
+void display_text(int, int, char*);
 
 volatile int pom_start_val = 25;
 volatile int small_break_start_val = 5;
@@ -84,18 +74,35 @@ volatile int key_mode = 1;  // 1 for start, 2 for pause, 3 for stop (ringing) --
 volatile bool study_mode = true; // 0 for pomodoro, 1 for break, 2 for long break
 volatile int study_session_count = 1;
 
+volatile int *LEDR_ptr = (int *) LEDR_BASE;
+volatile int *HEX3_HEX0_ptr = (int *) HEX3_HEX0_BASE;
+volatile int *TIMER_ptr = (int *) TIMER_BASE;
+volatile int *KEY_ptr = (int *) KEY_BASE;
+volatile int * CHAR_BUF_CTRL_ptr = (int *)CHAR_BUF_CTRL_BASE;
 
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
      * accesses will always go to the memory (I/O) address */
     volatile int *LEDR_ptr = (int *) LEDR_BASE;
     volatile int *HEX3_HEX0_ptr = (int *) HEX3_HEX0_BASE;
-    volatile int * CHAR_BUF_CTRL_ptr = (int *)CHAR_BUF_CTRL_BASE;
     
-
     sec_time = pom_start_val;
 
     while (1) {
         *LEDR_ptr = sec_time;
     }
 }
+
+void display_text(int x, int y, char * text_ptr) {
+    int offset;
+    volatile char* character_buffer = (char *)FPGA_CHAR_BASE; // video character buffer
+    /* assume that the text string fits on one line */
+    offset = (y << 7) + x;
+    while (*(text_ptr)) {
+        *(character_buffer + offset) =
+        *(text_ptr); // write to the character buffer
+        text_ptr++;
+        offset++;
+    }
+    }
+    

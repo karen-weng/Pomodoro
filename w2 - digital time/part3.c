@@ -1,11 +1,9 @@
 #include <stdbool.h>
 #include <math.h>
-void plot_pixel(int x, int y, short int line_color); // plots one pixel
+void plot_char(int x, int y, char ascii_code); // plots one pixel
 void clear_screen(); // clears whole screen
-void swap(int *num1, int *num2);
 void draw_line(int x0,int  y0,int x1,int y1, short int colour);
 void wait_for_v_sync();
-void draw_box(int x, int y, short int colour) ;
 
 
 int pixel_buffer_start; // global variable

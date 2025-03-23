@@ -146,7 +146,7 @@ void KEY_ISR(void) {
             key_mode = 1;
         } else if (key_mode==3) {   // update next countdown start value
             study_mode = !study_mode;
-            study_session_count += 1;
+            study_session_count++;
             if (study_mode) {
                 sec_time = pom_start_val;
             } else if (!study_mode && study_session_count%4!=0) {
