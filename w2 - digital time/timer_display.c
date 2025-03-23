@@ -52,6 +52,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 
 #define clock_rate 100000000
 #define quarter_clock clock_rate / 4
@@ -62,10 +63,17 @@ void set_KEY(void);
 void itimer_ISR(void);
 void KEY_ISR(void);
 
+void plot_pixel(int x, int y, short int line_color); // plots one pixel
+void clear_screen(); // clears whole screen
+void swap(int *num1, int *num2);
+void draw_line(int x0,int  y0,int x1,int y1, short int colour);
+void wait_for_v_sync();
+void draw_box(int x, int y, short int colour) ;
 
-// 7-segment codes for digits 0, 1, ..., 9
-char bit_codes[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 
-                    0x6d, 0x7d, 0x07, 0x7f, 0x67};
+
+int pixel_buffer_start; // global variable
+short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+short int Buffer2[240][512];
 
 volatile int pom_start_val = 25;
 volatile int small_break_start_val = 5;
@@ -75,50 +83,15 @@ volatile int min_time = 0;
 volatile int key_mode = 1;  // 1 for start, 2 for pause, 3 for stop (ringing) --> multiply by 2 for break vals
 volatile bool study_mode = true; // 0 for pomodoro, 1 for break, 2 for long break
 volatile int study_session_count = 1;
-/***************************************************************************
- * This program demonstrates use of interrupts with assembly code. It first
- * sets up interrupts from three devices: the Nios V machine timer, an FPGA
- * interval timer, and the pushbutton KEY port. Next, the program makes a
- * software interrupt occur. Finally, the program loops while responding to
- * interrupts from the timers and the pushbutton KEY port.
- *
- * The interrupt service routine for the software interrupt turns on most
- * of the red lights in the LEDR port.
- *
- * The interrupt service routine for the Nios V machine timer causes the
- * main program to display a binary counter on the LEDR red lights.
- *
- * The interrupt service routine for the interval timer causes the main
- * program to display a decimal counter on HEX0. The counter either
- * increases or decreases, in the range 0 to 9. When a KEY is pressed, the
- * direction of counting on HEX0 is reversed.
- *****************************************************************************/
+
 
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
      * accesses will always go to the memory (I/O) address */
     volatile int *LEDR_ptr = (int *) LEDR_BASE;
     volatile int *HEX3_HEX0_ptr = (int *) HEX3_HEX0_BASE;
-
-    set_itimer();
-    set_KEY();
-
-    int mstatus_value, mtvec_value, mie_value;
-    mstatus_value = 0b1000; // interrupt bit mask
-    // disable interrupts
-    __asm__ volatile ("csrc mstatus, %0" :: "r"(mstatus_value));
-    mtvec_value = (int) &handler; // set trap address
-    __asm__ volatile ("csrw mtvec, %0" :: "r"(mtvec_value));
-    // disable all interrupts that are currently enabled
-    __asm__ volatile ("csrr %0, mie" : "=r"(mie_value));
-    __asm__ volatile ("csrc mie, %0" :: "r"(mie_value));
-    mie_value = 0x450000; // KEY, itimer, ps/2 port (non-dual) -- irq 16, 18, 22
-    // set interrupt enables
-    __asm__ volatile ("csrs mie, %0" :: "r"(mie_value));
-    // enable Nios V interrupts
-    __asm__ volatile ("csrs mstatus, %0" :: "r"(mstatus_value));
-
-    *HEX3_HEX0_ptr = 0x3f; // show 0 on HEX0
+    volatile int * CHAR_BUF_CTRL_ptr = (int *)CHAR_BUF_CTRL_BASE;
+    
 
     sec_time = pom_start_val;
 

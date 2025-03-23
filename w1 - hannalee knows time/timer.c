@@ -62,11 +62,6 @@ void set_KEY(void);
 void itimer_ISR(void);
 void KEY_ISR(void);
 
-
-// 7-segment codes for digits 0, 1, ..., 9
-char bit_codes[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 
-                    0x6d, 0x7d, 0x07, 0x7f, 0x67};
-
 volatile int pom_start_val = 25;
 volatile int small_break_start_val = 5;
 volatile int big_break_start_val = 15;
@@ -75,30 +70,15 @@ volatile int min_time = 0;
 volatile int key_mode = 1;  // 1 for start, 2 for pause, 3 for stop (ringing) --> multiply by 2 for break vals
 volatile bool study_mode = true; // 0 for pomodoro, 1 for break, 2 for long break
 volatile int study_session_count = 1;
-/***************************************************************************
- * This program demonstrates use of interrupts with assembly code. It first
- * sets up interrupts from three devices: the Nios V machine timer, an FPGA
- * interval timer, and the pushbutton KEY port. Next, the program makes a
- * software interrupt occur. Finally, the program loops while responding to
- * interrupts from the timers and the pushbutton KEY port.
- *
- * The interrupt service routine for the software interrupt turns on most
- * of the red lights in the LEDR port.
- *
- * The interrupt service routine for the Nios V machine timer causes the
- * main program to display a binary counter on the LEDR red lights.
- *
- * The interrupt service routine for the interval timer causes the main
- * program to display a decimal counter on HEX0. The counter either
- * increases or decreases, in the range 0 to 9. When a KEY is pressed, the
- * direction of counting on HEX0 is reversed.
- *****************************************************************************/
+
+volatile int *LEDR_ptr = (int *) LEDR_BASE;
+volatile int *HEX3_HEX0_ptr = (int *) HEX3_HEX0_BASE;
+volatile int *TIMER_ptr = (int *) TIMER_BASE;
+volatile int *KEY_ptr = (int *) KEY_BASE;
 
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
      * accesses will always go to the memory (I/O) address */
-    volatile int *LEDR_ptr = (int *) LEDR_BASE;
-    volatile int *HEX3_HEX0_ptr = (int *) HEX3_HEX0_BASE;
 
     set_itimer();
     set_KEY();
@@ -144,28 +124,25 @@ void handler(void) {
 
 // FPGA interval timer interrupt service routine
 void itimer_ISR(void) {
-    volatile int *timer_ptr = (int *) TIMER_BASE;
-    *timer_ptr = 0; // clear interrupt
+    *TIMER_ptr = 0; // clear interrupt
     sec_time -= 1;  // decrease pom timer counter
     if (sec_time==0) {  // if pom timer done, on 'stop' mode
         key_mode = 3;
-        *(timer_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
+        *(TIMER_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
     }
 }
 
 // KEY port interrupt service routine
 void KEY_ISR(void) {
     int pressed_key;
-    volatile int *KEY_ptr = (int *) KEY_BASE;
-    volatile int *timer_ptr = (int *) TIMER_BASE;
     pressed_key = *(KEY_ptr + 3); // read EdgeCapture & get key value
     *(KEY_ptr + 3) = pressed_key; // clear EdgeCapture register
     if (pressed_key==1) {   // user presses start/pause/stop
         if (key_mode==1) {  // start
-            *(timer_ptr + 0x1) = 0x7;   // 0b0111 (start, cont, ito)
+            *(TIMER_ptr + 0x1) = 0x7;   // 0b0111 (start, cont, ito)
             key_mode = 2;
         } else if (key_mode==2) {   // pause
-            *(timer_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
+            *(TIMER_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
             key_mode = 1;
         } else if (key_mode==3) {   // update next countdown start value
             study_mode = !study_mode;
@@ -192,14 +169,14 @@ void KEY_ISR(void) {
 
 // Configure the FPGA interval timer
 void set_itimer(void) {
-    volatile int *timer_ptr = (int *) TIMER_BASE;
+    volatile int *TIMER_ptr = (int *) TIMER_BASE;
     // set the interval timer period
     int load_val = clock_rate;
-    *(timer_ptr + 0x2) = (load_val & 0xFFFF);
-    *(timer_ptr + 0x3) = (load_val >> 16) & 0xFFFF;
-    *(timer_ptr + 0x0) = 0;
+    *(TIMER_ptr + 0x2) = (load_val & 0xFFFF);
+    *(TIMER_ptr + 0x3) = (load_val >> 16) & 0xFFFF;
+    *(TIMER_ptr + 0x0) = 0;
     // turn on CONT & ITO bits (do not start)
-    *(timer_ptr + 0x1) = 0x3; // STOP = 1, START = 1, CONT = 1, ITO = 1
+    *(TIMER_ptr + 0x1) = 0x3; // STOP = 1, START = 1, CONT = 1, ITO = 1
 }
 
 // Configure the KEY port
