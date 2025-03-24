@@ -91,6 +91,11 @@ bool recording = false;
 // int front = 0;  // Index of the first element
 // int rear = 0;   // Index where the next element will be added
 // int sample_counter = 0;  // Number of elements in the array
+int signal_val = 0x7FFFFF;
+int counter = 0;
+// numSamples = 0.5s / (125us * Hz)
+// 40 samples half period is 100hz, 2 samples is 2khz
+int numSamples = 40; 
 
 // timer/hannalee variables
 volatile int pom_start_val = 25;
@@ -168,11 +173,13 @@ int main(void) {
         count++;
         *LEDR_ptr = led_display_val;
 
+
+        fifospace = *(AUDIO_ptr + 1);
         
 // clear fifospace at some point
         if (recording && audio_array_index < 100000) {
             *LEDR_ptr = 0xF;
-            fifospace = *(AUDIO_ptr + 1); // read the audio port fifospace register
+            // fifospace = *(AUDIO_ptr + 1); // read the audio port fifospace register
             if ((fifospace & 0x000000FF) > 0) // check RARC to see if there is data to read
             {
                 // load both input microphone channels - just get one sample from each
@@ -186,6 +193,28 @@ int main(void) {
 
             }
             audio_array_index++;
+        }
+
+        if (key_mode == 3) {
+            *(AUDIO_ptr + 2) = signal_val; // Left channel
+            *(AUDIO_ptr + 3) = signal_val; // Right channel
+
+            counter++;
+
+            if (counter >= numSamples) { // toggle high low
+                if (signal_val == 0x7FFFFF) {
+                    signal_val = 0;
+                }
+                else {
+                    signal_val = 0x7FFFFF;
+                }
+                counter = 0;
+            }
+			
+            // store both of those samples to output channels
+            *(AUDIO_ptr + 2) = left;
+            *(AUDIO_ptr + 3) = right;
+
         }
     }
 }
