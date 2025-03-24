@@ -66,6 +66,7 @@ void set_PS2();
 void PS2_ISR(void); // IRQ = 22
 void pressed_enter(void);
 void play_alarm(void);
+void draw(void);
 
 
 // keyboard variables
