@@ -137,6 +137,10 @@ int main(void) {
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
         draw_rectangle(loading, white);  // display loading bar;
+        for (int i=loading[1]; i<loading[3]; i++) {
+            int num = (loading[2]-loading[0])*(pom_start_val-sec_time)/pom_start_val+loading[0];
+            draw_line(loading[0], i, num, i, white);
+        }
         clear_rectangle(num_coords);
         display_num(132, 80, white, digits[1]);
         display_num(164, 80, white, digits[0]);
