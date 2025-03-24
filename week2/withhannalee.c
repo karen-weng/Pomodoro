@@ -69,7 +69,8 @@ int makeNumbers[] = {0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46}
 int makeArrows[] = {0x75, 0x6B, 0x72, 0x74}; // up, left, down, right
 int makeOther[] = {0x5A, 0x29, 0x66};        // enter, space, backspace
 int makeOtherE0[] = {0x05, 0x06, 0x04};      // F1, F2, F3
-int PS2_data, RVALID;
+volatile unsigned char PS2_data;
+volatile unsigned char RVALID;
 
 volatile unsigned char byte1 = 0;
 volatile unsigned char byte2 = 0;
@@ -89,7 +90,7 @@ volatile int *HEX3_HEX0_ptr = (int *)HEX3_HEX0_BASE;
 volatile int *TIMER_ptr = (int *)TIMER_BASE;
 volatile int *KEY_ptr = (int *)KEY_BASE;
 
-int led_display_val = 0;
+volatile int led_display_val = 0;
 
 int main(void)
 {
@@ -141,27 +142,27 @@ void handler(void)
     { // IRQ = 22
         led_display_val = 0;
         // int timeout = 0; // Set a timeout value to prevent infinite loop
-        while ((*PS2_ptr & 0x8000))
-        {                        // While RVALID is set and timeout not reached
+        // while ((*PS2_ptr & 0x8000))
+        // {                        // While RVALID is set and timeout not reached
             PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
 
             // Update byte history
             byte1 = byte2;
             byte2 = byte3;
             byte3 = PS2_data & 0xFF;
-
-            if (byte1 == 0xE0)
-            {
-                led_display_val = 64;
-            }
-            if (byte2 == 0xE0)
-            {
-                led_display_val = 32;
-            }
-            if (byte3 == 0x75)
-            {
-                led_display_val = 16;
-            }
+            
+            // if (byte1 == 0xE0)
+            // {
+            //     led_display_val = 64;
+            // }
+            // if (byte2 == 0xE0)
+            // {
+            //     led_display_val = 32;
+            // }
+            // if (byte3 == 0xE0)
+            // {
+            //     led_display_val = 16;
+            // }
 
             // Minimal processing - just light LED for arrow keys
             if (byte1 == 0xE0 && byte2 == 0xF0)
@@ -184,7 +185,7 @@ void handler(void)
                 }
             }
             // timeout++; // increment timeout counter
-        }
+        // }
     }
     // else, ignore the trap
     else
