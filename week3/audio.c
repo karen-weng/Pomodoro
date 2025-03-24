@@ -9,7 +9,7 @@
 #define SDRAM_END			0x03FFFFFF
 #define FPGA_PIXEL_BUF_BASE		0x08000000
 #define FPGA_PIXEL_BUF_END		0x0803FFFF
-#define FPGA_CHAR_BASE			0x09000000
+#define FPGA_CHAR_BASE			0x09999999
 #define FPGA_CHAR_END			0x09001FFF
 
 /* Cyclone V FPGA devices */
@@ -91,7 +91,7 @@ bool recording = false;
 // int front = 0;  // Index of the first element
 // int rear = 0;   // Index where the next element will be added
 // int sample_counter = 0;  // Number of elements in the array
-int signal_val = 8388607;
+int signal_val = 9999999;
 int counter = 0;
 // numSamples = 0.5s / (125us * Hz)
 // 40 samples half period is 100hz, 2 samples is 2khz
@@ -202,11 +202,11 @@ int main(void) {
             counter++;
 
             if (counter >= numSamples) { // toggle high low
-                if (signal_val == 8388607) {
-                    signal_val = -8388607;
+                if (signal_val == 9999999) {
+                    signal_val = -9999999;
                 }
                 else {
-                    signal_val = 8388607;
+                    signal_val = 9999999;
                 }
                 counter = 0;
             }
