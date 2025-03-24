@@ -421,13 +421,17 @@ void PS2_ISR(void) { // IRQ = 22
 }
 
 void pressed_enter(void) {   // user presses start/pause/stop
-    if (key_mode==1) {  // start
+    // mode 1= currently paused
+    // mode 2= currently counting
+    // mode 3= 00, currently ringing
+
+    if (key_mode==1) {  // start the timer countdown
         *(TIMER_ptr + 0x1) = 0x7;   // 0b0111 (start, cont, ito)
         key_mode = 2;
-    } else if (key_mode==2) {   // pause
+    } else if (key_mode==2) {   // pause the timer countdown
         *(TIMER_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
         key_mode = 1;
-    } else if (key_mode==3) {   // update next countdown start value
+    } else if (key_mode==3) {   // stop the ringing update next countdown start value
         study_mode = !study_mode;
         study_session_count++;
         if (study_mode) {
@@ -444,3 +448,4 @@ void pressed_enter(void) {   // user presses start/pause/stop
         printf("Unexpected key mode %d.", key_mode);
     }
 }
+
