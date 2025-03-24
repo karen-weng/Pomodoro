@@ -64,6 +64,7 @@ void KEY_ISR(void);
 
 void set_PS2();
 void PS2_ISR(void); // IRQ = 22
+void pressed_enter(void);
 
 
 volatile int *PS2_ptr = (int *)0xFF200100; // PS/2 port address
