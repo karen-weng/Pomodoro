@@ -136,12 +136,21 @@ int main(void) {
         countdown_display(sec_time, digits);
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        clear_rectangle(num_coords);
+        clear_rectangle(loading);
         draw_rectangle(loading, white);  // display loading bar;
         for (int i=loading[1]; i<loading[3]; i++) {
-            int num = (loading[2]-loading[0])*(pom_start_val-sec_time)/pom_start_val+loading[0];
+            int tot;
+            if (study_mode) {
+                tot = pom_start_val;
+            } else if (study_session_count%4!=0) {
+                tot = small_break_start_val;
+            } else {
+                tot = big_break_start_val;
+            }
+            int num = (loading[2]-loading[0])*(tot-sec_time)/tot+loading[0];
             draw_line(loading[0], i, num, i, white);
         }
-        clear_rectangle(num_coords);
         display_num(132, 80, white, digits[1]);
         display_num(164, 80, white, digits[0]);
         //display_loading(sec_time, pom_start_val);
