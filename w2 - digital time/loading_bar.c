@@ -197,8 +197,6 @@ void KEY_ISR(void) {
             *(TIMER_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
             key_mode = 1;
         } else if (key_mode==3) {   // update next countdown start value
-            //clear_rectangle(loading);
-            //draw_rectangle(loading, white);
             study_mode = !study_mode;
             study_session_count++;
             if (study_mode) {
@@ -215,6 +213,19 @@ void KEY_ISR(void) {
             printf("Unexpected key mode %d.", key_mode);
         }
     } else if (pressed_key==2) {
+        *(TIMER_ptr + 0x1) = 0xB;
+        key_mode = 1;   // auto-set to start
+        study_mode = !study_mode;
+        study_session_count++;
+        if (study_mode) {
+            sec_time = pom_start_val;
+        } else if (!study_mode && study_session_count%4!=0) {
+            sec_time = small_break_start_val;
+        } else if (!study_mode) {
+            sec_time = big_break_start_val;
+        } else {
+            printf("Unexpected study mode %d.", study_mode);
+        }
 
     } else {
         printf("Unexpected key %d pressed.", pressed_key);
