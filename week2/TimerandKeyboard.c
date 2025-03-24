@@ -248,103 +248,96 @@ void set_PS2()
 
 void PS2_ISR(void) { // IRQ = 22
     led_display_val = 0;
-    // int timeout = 0; // Set a timeout value to prevent infinite loop
-    // if ((*PS2_ptr & 0x8000))
-    // {                        // While RVALID is set and timeout not reached
-        PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
+    PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
 
-        // Update byte history
-        byte1 = byte2;
-        byte2 = byte3;
-        byte3 = PS2_data & 0xFF;
-        
-        // Minimal processing - just light LED for arrow keys
-         
-        if (byte2 == 0xF0)
-        {
-            if (byte1 == 0xE0) {
-                switch (byte3)
-                {
-                // arrow keys
-                case 0x75:
-                    led_display_val = 16;
-                    break; // Up
-                case 0x6B:
-                    led_display_val = 32;
-                    break; // Left
-                case 0x72:
-                    led_display_val = 64;
-                    break; // Down
-                case 0x74:
-                    led_display_val = 128;
-                    break; // Right
-                }
-            }
-            else {
-                switch (byte3)
-                {
-                // numbers 0-9
-                //0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46
-                case 0x45:
-                    led_display_val = 0;
-                    break; // 0
-                case 0x16:
-                    led_display_val = 1;
-                    break; // 1
-                case 0x1E:
-                    led_display_val = 2;
-                    break; // 2
-                case 0x26:
-                    led_display_val = 3;
-                    break; // 3
-                case 0x25:
-                    led_display_val = 4;
-                    break; // 4
-                case 0x2E:
-                    led_display_val = 5;
-                    break; // 5
-                case 0x36:
-                    led_display_val = 6;
-                    break; // 6
-                case 0x3D:
-                    led_display_val = 7;
-                    break; // 7
-                case 0x3E:
-                    led_display_val = 8;
-                    break; // 8
-                case 0x46:
-                    led_display_val = 9;
-                    break; // 9
-
-                // function keys
-                // 0x05, 0x06, 0x04 
-                case 0x05:
-                    led_display_val = 256;
-                    break; // F1
-                case 0x06:
-                    led_display_val = 256;
-                    break; // F2
-                case 0x04:
-                    led_display_val = 256;
-                    break; // F3
-
-                    
-                //other // enter, space, backspace
-                //0x5A, 0x29, 0x66
-                case 0x5A:
-                    led_display_val = 256;
-                    break; // enter
-                case 0x29:
-                    led_display_val = 256;
-                    break; // space
-                case 0x66:
-                    led_display_val = 256;
-                    break; // backspace
-                }
+    // Update byte history
+    byte1 = byte2;
+    byte2 = byte3;
+    byte3 = PS2_data & 0xFF;
+                
+    if (byte2 == 0xF0)
+    {
+        if (byte1 == 0xE0) {
+            switch (byte3)
+            {
+            // arrow keys
+            case 0x75:
+                led_display_val = 16;
+                break; // Up
+            case 0x6B:
+                led_display_val = 32;
+                break; // Left
+            case 0x72:
+                led_display_val = 64;
+                break; // Down
+            case 0x74:
+                led_display_val = 128;
+                break; // Right
             }
         }
-        // timeout++; // increment timeout counter
-    // }
+        else {
+            switch (byte3)
+            {
+            // numbers 0-9
+            //0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46
+            case 0x45:
+                led_display_val = 0;
+                break; // 0
+            case 0x16:
+                led_display_val = 1;
+                break; // 1
+            case 0x1E:
+                led_display_val = 2;
+                break; // 2
+            case 0x26:
+                led_display_val = 3;
+                break; // 3
+            case 0x25:
+                led_display_val = 4;
+                break; // 4
+            case 0x2E:
+                led_display_val = 5;
+                break; // 5
+            case 0x36:
+                led_display_val = 6;
+                break; // 6
+            case 0x3D:
+                led_display_val = 7;
+                break; // 7
+            case 0x3E:
+                led_display_val = 8;
+                break; // 8
+            case 0x46:
+                led_display_val = 9;
+                break; // 9
+
+            // function keys
+            // 0x05, 0x06, 0x04 
+            case 0x05:
+                led_display_val = 256;
+                break; // F1
+            case 0x06:
+                led_display_val = 256;
+                break; // F2
+            case 0x04:
+                led_display_val = 256;
+                break; // F3
+
+
+            //other // enter, space, backspace
+            //0x5A, 0x29, 0x66
+            case 0x5A:
+                led_display_val = 256;
+                break; // enter
+            case 0x29:
+                led_display_val = 256;
+                break; // space
+            case 0x66:
+                led_display_val = 256;
+                break; // backspace
+            }
+        }
+    }
 }
 
 
