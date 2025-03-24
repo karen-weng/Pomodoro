@@ -1,16 +1,19 @@
 #include <stdbool.h>
 #include <math.h>
-void plot_char(int x, int y, char ascii_code); // plots one pixel
+void plot_pixel(int x, int y, short int line_color); // plots one pixel
 void clear_screen(); // clears whole screen
+void swap(int *num1, int *num2);
 void draw_line(int x0,int  y0,int x1,int y1, short int colour);
 void wait_for_v_sync();
+void draw_box(int x, int y, short int colour) ;
 
 
 int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
 
-int main(void) {
+int main(void)
+{
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     // declare other variables(not shown)
     // initialize location and direction of rectangles(not shown)
@@ -30,7 +33,7 @@ int main(void) {
     }
 
     /* set front pixel buffer to Buffer 1 */
-    *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the  back buffer
+    *(pixel_ctrl_ptr + 1) = (int) &Buffer1; // first store the address in the back buffer
     /* now, swap the front/back buffers, to set the front buffer location */
     wait_for_v_sync();
     /* initialize a pointer to the pixel buffer, used by drawing functions */
@@ -67,8 +70,8 @@ int main(void) {
                 draw_box(x_coor_array[i], y_coor_array[i], 0xF800);
             } else {
                     draw_box(x_coor_array[i], y_coor_array[i], 0x07E0);
-            }    
-        }
+            }
+        }   
     }
 }
 
@@ -154,6 +157,3 @@ void draw_box(int x, int y, short int colour) {
         }
     }
 }
-
-
-

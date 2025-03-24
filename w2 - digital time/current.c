@@ -63,24 +63,40 @@ void display_num(int, int, short int, int);
 void wait_for_v_sync();
 volatile int* PIXEL_BUF_CTRL_ptr = (int*) PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start; // global variable
+short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+short int buffer2[240][512];
 
 int main(void) {
-    /* Read location of the pixel buffer from the pixel buffer controller */
+
+    /* set front pixel buffer to buffer 1 */
+    *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer1; // first store the address in the  back buffer
+    /* now, swap the front/back buffers, to set the front buffer location */
+    wait_for_v_sync();
+    /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *PIXEL_BUF_CTRL_ptr;
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
 
-    // 319, 239
-    clear_screen();
-    //draw_line(0, y_coor, 319, y_coor, 0x07E0);   // this line is green
+    /* set back pixel buffer to buffer 2 */
+    *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer2;
+    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+    
+    int n = 0;
+    int count = 0;
     while (1) {
-        
-        
-        *PIXEL_BUF_CTRL_ptr = 1;
+        if (count>=30) {
+            count = 0;
+            n++;
+        }
+        if (n>9) {
+            n = 0;
+        }
         wait_for_v_sync();
-        //clear_screen();
-
-
+        pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        clear_screen();
+        display_num(150, 80, 0xFFFF, n);
+        count++;
     }
-
 }
 
 void clear_screen() {
@@ -98,53 +114,39 @@ void plot_pixel(int x, int y, short int line_color) {
 
 void display_num(int x, int y, short int line_color, int num) {
     if (num!=1 && num!=4) { // seg 0: 0 2 3 5 6 7 8 9
-        for (int r=x+2; r<x+4; r++) {
-            for (int c=y+4; c<y+18; c++) {
-                plot_pixel(c, r, line_color);
-            }
-        }
+        for (int r=x+2; r<x+4; r++)
+        for (int c=y+4; c<y+18; c++)
+        plot_pixel(c, r, line_color);
     }
     if (num!=5 && num!=6) { // seg 1: 0 1 2 3 4 7 8 9
-        for (int r=x+4; r<x+19; r++) {
-            for (int c=y+18; c<y+20; c++) {
-                plot_pixel(c, r, line_color);
-            }
-        }
+        for (int r=x+4; r<x+19; r++)
+        for (int c=y+18; c<y+20; c++)
+        plot_pixel(c, r, line_color);
     }
     if (num!=2) { // seg 2: 0 1 3 4 5 6 7 8 9
-        for (int r=x+21; r<x+36; r++) {
-            for (int c=y+18; c<y+20; c++) {
-                plot_pixel(c, r, line_color);
-            }
-        }
+        for (int r=x+21; r<x+36; r++)
+        for (int c=y+18; c<y+20; c++)
+        plot_pixel(c, r, line_color);
     }
     if (num!=1 && num!=4 && num!=7) { // seg 3: 0 2 3 5 6 8 9
-        for (int r=x+36; r<x+38; r++) {
-            for (int c=y+4; c<y+18; c++) {
-                plot_pixel(c, r, line_color);
-            }
-        }
+        for (int r=x+36; r<x+38; r++)
+        for (int c=y+4; c<y+18; c++)
+        plot_pixel(c, r, line_color);
     }
     if (num==0 || num==2 || num==6 || num==8) { // seg 4: 0 2 6 8
-        for (int r=x+21; r<x+36; r++) {
-            for (int c=y+2; c<y+4; c++) {
-                plot_pixel(c, r, line_color);
-            }
-        }
+        for (int r=x+21; r<x+36; r++)
+        for (int c=y+2; c<y+4; c++)
+        plot_pixel(c, r, line_color);
     }
     if (num!=1 && num!=2 && num!=3 && num!=7) { // seg 5: 0 4 5 6 8 9
-        for (int r=x+4; r<x+19; r++) {
-            for (int c=y+2; c<y+4; c++) {
-                plot_pixel(c, r, line_color);
-            }
-        }
+        for (int r=x+4; r<x+19; r++)
+        for (int c=y+2; c<y+4; c++)
+        plot_pixel(c, r, line_color);
     }
     if (num!=0 && num!=1 && num!=7) { // seg 6: 2 3 4 5 6 8 9
-        for (int r=x+19; r<x+21; r++) {
-            for (int c=y+4; c<y+18; c++) {
-                plot_pixel(c, r, line_color);
-            }
-        }
+        for (int r=x+19; r<x+21; r++)
+        for (int c=y+4; c<y+18; c++)
+        plot_pixel(c, r, line_color);
     }
 }
 
