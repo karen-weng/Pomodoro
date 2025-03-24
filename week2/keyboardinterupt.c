@@ -28,75 +28,116 @@ void set_PS2()
 }
 
 
-void keyboard_handler() {
+// void keyboard_handler() {
     
-		PS2_data = *(PS2_ptr);	// read the Data register in the PS/2 port
-		// RVALID = (PS2_data & 0x8000);	// extract the RVALID field
-		// if (RVALID != 0)
-		// {
-			/* always save the last three bytes received */
-        byte1 = byte2;
-        byte2 = byte3;
-        byte3 = PS2_data & 0xFF;
-		// }
-		if ( (byte2 == 0xAA) && (byte3 == 0x00) )
-		{
-			// mouse inserted; initialize sending of data
-			*(PS2_ptr) = 0xF4;
-		}
-		// Display last byte on Red LEDs
+// 		PS2_data = *(PS2_ptr);	// read the Data register in the PS/2 port
+// 		// RVALID = (PS2_data & 0x8000);	// extract the RVALID field
+// 		// if (RVALID != 0)
+// 		// {
+// 			/* always save the last three bytes received */
+//         byte1 = byte2;
+//         byte2 = byte3;
+//         byte3 = PS2_data & 0xFF;
+// 		// }
+
+// 		// if ( (byte2 == 0xAA) && (byte3 == 0x00) )
+// 		// {
+// 		// 	// mouse inserted; initialize sending of data
+// 		// 	*(PS2_ptr) = 0xF4;
+// 		// }
+// 		// Display last byte on Red LEDs
 		
 
-		if (byte2 == 0xE0) {
-			for (int i = 0; i < 4; i++ ) {
-				if (makeArrows[i] == byte3) {
-					*RLEDs = i;
-					break;
-				}
-			}
-			// for (int i = 0; i < 3; i++ ) {
-			// 	if (makeOtherE0[i] == byte3) {
-			// 		*RLEDs = i;
-			// 		break;
-			// 	}
-			// }
-		}
-		// else {
-		// 	for (int i = 0; i < 10; i++ ) {
-		// 		if (makeNumbers[i] == byte3) {
-		// 			*RLEDs = i;
-		// 			break;
-		// 		}
-		// 	}
-		// 	for (int i = 0; i < 3; i++ ) {
-		// 		if (makeOther[i] == byte3) {
-		// 			*RLEDs = i;
-		// 			break;
-		// 		}
-		// 	}
-		// }
+// 		if (byte2 == 0xE0) {
+// 			for (int i = 0; i < 4; i++ ) {
+// 				if (makeArrows[i] == byte3) {
+// 					*RLEDs = i;
+// 					break;
+// 				}
+// 			}
+// 			// for (int i = 0; i < 3; i++ ) {
+// 			// 	if (makeOtherE0[i] == byte3) {
+// 			// 		*RLEDs = i;
+// 			// 		break;
+// 			// 	}
+// 			// }
+// 		}
+// 		// else {
+// 		// 	for (int i = 0; i < 10; i++ ) {
+// 		// 		if (makeNumbers[i] == byte3) {
+// 		// 			*RLEDs = i;
+// 		// 			break;
+// 		// 		}
+// 		// 	}
+// 		// 	for (int i = 0; i < 3; i++ ) {
+// 		// 		if (makeOther[i] == byte3) {
+// 		// 			*RLEDs = i;
+// 		// 			break;
+// 		// 		}
+// 		// 	}
+// 		// }
 
-        // *(PS2_ptr + 1) = 0;
+//         // *(PS2_ptr + 1) = 0;
 
-		return;
-		// *RLEDs = byte3;
+// 		return;
+// 		// *RLEDs = byte3;
 
 
-}
+// }
+
+// void keyboard_handler() {
+//     while (*PS2_ptr & 0x8000) { // While RVALID is set
+//         PS2_data = *PS2_ptr;    // Read data and implicitly decrement RAVAIL
+        
+//         // Update byte history
+//         byte1 = byte2;
+//         byte2 = byte3;
+//         byte3 = PS2_data & 0xFF;
+        
+//         // Minimal processing - just light LED for arrow keys
+//         if (byte2 == 0xE0) {
+//             switch(byte3) {
+//                 case 0x75: *RLEDs = 0; break; // Up
+//                 case 0x6B: *RLEDs = 1; break; // Left
+//                 case 0x72: *RLEDs = 2; break; // Down
+//                 case 0x74: *RLEDs = 3; break; // Right
+//             }
+//         }
+//     }
+// }
 
 void interrupt_handler() {
     int mcause_value;
     __asm__ volatile ("csrr %0, mcause" : "=r"(mcause_value));
 
-    *(PS2_ptr + 1) = 0; //clear interrupt
+    // *(PS2_ptr) = 0; //clear interrupt
 
     if (mcause_value == 0x80000016) { //IRQ = 22
-        keyboard_handler();
+        // keyboard_handler();
+        while (*PS2_ptr & 0x8000) { // While RVALID is set
+            PS2_data = *PS2_ptr;    // Read data and implicitly decrement RAVAIL
+            
+            // Update byte history
+            byte1 = byte2;
+            byte2 = byte3;
+            byte3 = PS2_data & 0xFF;
+            
+            // Minimal processing - just light LED for arrow keys
+            if (byte2 == 0xE0) {
+                switch(byte3) {
+                    case 0x75: *RLEDs = 0; break; // Up
+                    case 0x6B: *RLEDs = 1; break; // Left
+                    case 0x72: *RLEDs = 2; break; // Down
+                    case 0x74: *RLEDs = 3; break; // Right
+                }
+            }
+        }
     }
 
     // *(PS2_ptr + 1) = 0;  // Clear the interrupt flag
     return;
 }
+
 void interrupt_setup()
 {
     int mstatus_value, mtvec_value, mie_value;
