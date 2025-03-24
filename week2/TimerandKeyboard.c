@@ -63,13 +63,16 @@ void itimer_ISR(void);
 void KEY_ISR(void);
 
 void set_PS2();
+void PS2_ISR(void); // IRQ = 22
+
 
 volatile int *PS2_ptr = (int *)0xFF200100; // PS/2 port address
-int makeNumbers[] = {0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46};
-int makeArrows[] = {0x75, 0x6B, 0x72, 0x74}; // up, left, down, right
-int makeOther[] = {0x5A, 0x29, 0x66};        // enter, space, backspace
-int makeOtherE0[] = {0x05, 0x06, 0x04};      // F1, F2, F3
-int PS2_data, RVALID;
+// int makeNumbers[] = {0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46};
+// int makeArrows[] = {0x75, 0x6B, 0x72, 0x74}; // up, left, down, right
+// int makeOther[] = {0x5A, 0x29, 0x66};        // enter, space, backspace
+// int makeOtherE0[] = {0x05, 0x06, 0x04};      // F1, F2, F3
+volatile unsigned char PS2_data;
+volatile unsigned char RVALID;
 
 volatile unsigned char byte1 = 0;
 volatile unsigned char byte2 = 0;
@@ -89,7 +92,7 @@ volatile int *HEX3_HEX0_ptr = (int *)HEX3_HEX0_BASE;
 volatile int *TIMER_ptr = (int *)TIMER_BASE;
 volatile int *KEY_ptr = (int *)KEY_BASE;
 
-int led_display_val = 0;
+volatile int led_display_val = 0;
 
 int main(void)
 {
@@ -136,56 +139,8 @@ void handler(void)
         itimer_ISR();
     else if (mcause_value == 0x80000012) // KEY port
         KEY_ISR();
-
-    else if (mcause_value == 0x80000016)
-    { // IRQ = 22
-        led_display_val = 0;
-        // int timeout = 0; // Set a timeout value to prevent infinite loop
-        while ((*PS2_ptr & 0x8000))
-        {                        // While RVALID is set and timeout not reached
-            PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
-
-            // Update byte history
-            byte1 = byte2;
-            byte2 = byte3;
-            byte3 = PS2_data & 0xFF;
-
-            if (byte1 == 0xE0)
-            {
-                led_display_val = 64;
-            }
-            if (byte2 == 0xE0)
-            {
-                led_display_val = 32;
-            }
-            if (byte3 == 0x75)
-            {
-                led_display_val = 16;
-            }
-
-            // Minimal processing - just light LED for arrow keys
-            if (byte1 == 0xE0 && byte2 == 0xF0)
-            {
-
-                switch (byte3)
-                {
-                case 0x75:
-                    led_display_val = 1;
-                    break; // Up
-                case 0x6B:
-                    led_display_val = 2;
-                    break; // Left
-                case 0x72:
-                    led_display_val = 4;
-                    break; // Down
-                case 0x74:
-                    led_display_val = 8;
-                    break; // Right
-                }
-            }
-            // timeout++; // increment timeout counter
-        }
-    }
+    else if (mcause_value == 0x80000016) // keyboard ps2
+        PS2_ISR();
     // else, ignore the trap
     else
     {
@@ -280,6 +235,7 @@ void set_KEY(void)
     *(KEY_ptr + 2) = 0x3; // enable interrupts for keys 0-1
 }
 
+// Configure the PS2 port for keyboard
 void set_PS2()
 {
     // Keep reading while RVALID (bit 15) is set
@@ -290,3 +246,100 @@ void set_PS2()
 
     *(PS2_ptr + 1) = 1; // enable interrupts RE bit
 }
+
+// KEY port interrupt service routine
+void PS2_ISR(void) { // IRQ = 22
+    led_display_val = 0;
+    PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
+
+    // Update byte history
+    byte1 = byte2;
+    byte2 = byte3;
+    byte3 = PS2_data & 0xFF;
+                
+    if (byte2 == 0xF0)
+    {
+        if (byte1 == 0xE0) {
+            switch (byte3)
+            {
+            // arrow keys
+            case 0x75:
+                led_display_val = 16;
+                break; // Up
+            case 0x6B:
+                led_display_val = 32;
+                break; // Left
+            case 0x72:
+                led_display_val = 64;
+                break; // Down
+            case 0x74:
+                led_display_val = 128;
+                break; // Right
+            }
+        }
+        else {
+            switch (byte3)
+            {
+            // numbers 0-9
+            //0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46
+            case 0x45:
+                led_display_val = 0;
+                break; // 0
+            case 0x16:
+                led_display_val = 1;
+                break; // 1
+            case 0x1E:
+                led_display_val = 2;
+                break; // 2
+            case 0x26:
+                led_display_val = 3;
+                break; // 3
+            case 0x25:
+                led_display_val = 4;
+                break; // 4
+            case 0x2E:
+                led_display_val = 5;
+                break; // 5
+            case 0x36:
+                led_display_val = 6;
+                break; // 6
+            case 0x3D:
+                led_display_val = 7;
+                break; // 7
+            case 0x3E:
+                led_display_val = 8;
+                break; // 8
+            case 0x46:
+                led_display_val = 9;
+                break; // 9
+
+            // function keys
+            // 0x05, 0x06, 0x04 
+            case 0x05:
+                led_display_val = 256;
+                break; // F1
+            case 0x06:
+                led_display_val = 256;
+                break; // F2
+            case 0x04:
+                led_display_val = 256;
+                break; // F3
+
+
+            //other // enter, space, backspace
+            //0x5A, 0x29, 0x66
+            case 0x5A:
+                led_display_val = 256;
+                break; // enter
+            case 0x29:
+                led_display_val = 256;
+                break; // space
+            case 0x66:
+                led_display_val = 256;
+                break; // backspace
+            }
+        }
+    }
+}
+
+
