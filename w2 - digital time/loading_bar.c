@@ -130,7 +130,6 @@ int main(void) {
     clear_screen(); // pixel_buffer_start points to the pixel buffer
     draw_rectangle(loading, white);  // display loading bar;
     int n = 0;
-    int count = 0;
     int digits [2];
     while (1) {
         countdown_display(sec_time, digits);
@@ -198,9 +197,9 @@ void KEY_ISR(void) {
             key_mode = 1;
         } else if (key_mode==3) {   // update next countdown start value
             study_mode = !study_mode;
-            study_session_count++;
             if (study_mode) {
                 sec_time = pom_start_val;
+                study_session_count++;
             } else if (!study_mode && study_session_count%4!=0) {
                 sec_time = small_break_start_val;
             } else if (!study_mode) {
@@ -216,9 +215,9 @@ void KEY_ISR(void) {
         *(TIMER_ptr + 0x1) = 0xB;
         key_mode = 1;   // auto-set to start
         study_mode = !study_mode;
-        study_session_count++;
         if (study_mode) {
             sec_time = pom_start_val;
+            study_session_count++;
         } else if (!study_mode && study_session_count%4!=0) {
             sec_time = small_break_start_val;
         } else if (!study_mode) {
