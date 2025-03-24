@@ -63,6 +63,8 @@ void itimer_ISR(void);
 void KEY_ISR(void);
 
 void set_PS2();
+void PS2_ISR(void); // IRQ = 22
+
 
 volatile int *PS2_ptr = (int *)0xFF200100; // PS/2 port address
 int makeNumbers[] = {0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46};
@@ -137,56 +139,8 @@ void handler(void)
         itimer_ISR();
     else if (mcause_value == 0x80000012) // KEY port
         KEY_ISR();
-
-    else if (mcause_value == 0x80000016)
-    { // IRQ = 22
-        led_display_val = 0;
-        // int timeout = 0; // Set a timeout value to prevent infinite loop
-        // while ((*PS2_ptr & 0x8000))
-        // {                        // While RVALID is set and timeout not reached
-            PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
-
-            // Update byte history
-            byte1 = byte2;
-            byte2 = byte3;
-            byte3 = PS2_data & 0xFF;
-            
-            // if (byte1 == 0xE0)
-            // {
-            //     led_display_val = 64;
-            // }
-            // if (byte2 == 0xE0)
-            // {
-            //     led_display_val = 32;
-            // }
-            // if (byte3 == 0xE0)
-            // {
-            //     led_display_val = 16;
-            // }
-
-            // Minimal processing - just light LED for arrow keys
-            if (byte1 == 0xE0 && byte2 == 0xF0)
-            {
-
-                switch (byte3)
-                {
-                case 0x75:
-                    led_display_val = 1;
-                    break; // Up
-                case 0x6B:
-                    led_display_val = 2;
-                    break; // Left
-                case 0x72:
-                    led_display_val = 4;
-                    break; // Down
-                case 0x74:
-                    led_display_val = 8;
-                    break; // Right
-                }
-            }
-            // timeout++; // increment timeout counter
-        // }
-    }
+    else if (mcause_value == 0x80000016) // keyboard ps2
+        PS2_ISR();
     // else, ignore the trap
     else
     {
@@ -291,3 +245,41 @@ void set_PS2()
 
     *(PS2_ptr + 1) = 1; // enable interrupts RE bit
 }
+
+void PS2_ISR(void) { // IRQ = 22
+    led_display_val = 0;
+    // int timeout = 0; // Set a timeout value to prevent infinite loop
+    // if ((*PS2_ptr & 0x8000))
+    // {                        // While RVALID is set and timeout not reached
+        PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
+
+        // Update byte history
+        byte1 = byte2;
+        byte2 = byte3;
+        byte3 = PS2_data & 0xFF;
+        
+        // Minimal processing - just light LED for arrow keys
+        if (byte1 == 0xE0 && byte2 == 0xF0)
+        {
+
+            switch (byte3)
+            {
+            case 0x75:
+                led_display_val = 1;
+                break; // Up
+            case 0x6B:
+                led_display_val = 2;
+                break; // Left
+            case 0x72:
+                led_display_val = 4;
+                break; // Down
+            case 0x74:
+                led_display_val = 8;
+                break; // Right
+            }
+        }
+        // timeout++; // increment timeout counter
+    // }
+}
+
+
