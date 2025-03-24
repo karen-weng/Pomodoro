@@ -60,23 +60,39 @@
 void plot_pixel(int, int, short int); // plots one pixel
 void clear_screen(); // clears whole screen
 void display_num(int, int, short int, int);
+void countdown_display(int, int*);
 void wait_for_v_sync();
 volatile int* PIXEL_BUF_CTRL_ptr = (int*) PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start; // global variable
+short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+short int buffer2[240][512];
 
 int main(void) {
-    /* Read location of the pixel buffer from the pixel buffer controller */
+
+    /* set front pixel buffer to buffer 1 */
+    *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer1; // first store the address in the  back buffer
+    /* now, swap the front/back buffers, to set the front buffer location */
+    wait_for_v_sync();
+    /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *PIXEL_BUF_CTRL_ptr;
-
-    // 319, 239
-    clear_screen();
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+    int hex_value = 0x3B; // Example: 0x3B = 59 in decimal
+    /* set back pixel buffer to buffer 2 */
+    *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer2;
+    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+    
+    int n = 0;
+    int count = 0;
+    int digits [2];
     while (1) {
-        
-        *PIXEL_BUF_CTRL_ptr = 1;
+        countdown_display(hex_value, digits);
         wait_for_v_sync();
-        //clear_screen();
-
-
+        pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        clear_screen();
+        display_num(120, 100, 0xFFFF, digits[1]);
+        display_num(150, 100, 0xFFFF, digits[0]);
+        count++;
     }
 }
 
@@ -95,40 +111,51 @@ void plot_pixel(int x, int y, short int line_color) {
 
 void display_num(int x, int y, short int line_color, int num) {
     if (num!=1 && num!=4) { // seg 0: 0 2 3 5 6 7 8 9
-        for (int r=x+2; r<x+4; r++)
-        for (int c=y+4; c<y+18; c++)
+        for (int r=y+2; r<y+4; r++)
+        for (int c=x+4; c<x+18; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=5 && num!=6) { // seg 1: 0 1 2 3 4 7 8 9
-        for (int r=x+4; r<x+19; r++)
-        for (int c=y+18; c<y+20; c++)
+        for (int r=y+4; r<y+19; r++)
+        for (int c=x+18; c<x+20; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=2) { // seg 2: 0 1 3 4 5 6 7 8 9
-        for (int r=x+21; r<x+36; r++)
-        for (int c=y+18; c<y+20; c++)
+        for (int r=y+21; r<y+36; r++)
+        for (int c=x+18; c<x+20; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=1 && num!=4 && num!=7) { // seg 3: 0 2 3 5 6 8 9
-        for (int r=x+36; r<x+38; r++)
-        for (int c=y+4; c<y+18; c++)
+        for (int r=y+36; r<y+38; r++)
+        for (int c=x+4; c<x+18; c++)
         plot_pixel(c, r, line_color);
     }
     if (num==0 || num==2 || num==6 || num==8) { // seg 4: 0 2 6 8
-        for (int r=x+21; r<x+36; r++)
-        for (int c=y+2; c<y+4; c++)
+        for (int r=y+21; r<y+36; r++)
+        for (int c=x+2; c<x+4; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=1 && num!=2 && num!=3 && num!=7) { // seg 5: 0 4 5 6 8 9
-        for (int r=x+4; r<x+19; r++)
-        for (int c=y+2; c<y+4; c++)
+        for (int r=y+4; r<y+19; r++)
+        for (int c=x+2; c<x+4; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=0 && num!=1 && num!=7) { // seg 6: 2 3 4 5 6 8 9
-        for (int r=x+19; r<x+21; r++)
-        for (int c=y+4; c<y+18; c++)
+        for (int r=y+19; r<y+21; r++)
+        for (int c=x+4; c<x+18; c++)
         plot_pixel(c, r, line_color);
     }
+}
+
+void countdown_display(int hex_value, int digits[]) {
+    if (hex_value>59) {
+        printf("Invalid value: Maximum allowed is 59\n");
+        return;
+    }
+    
+    int decimal_value = hex_value; // Convert from hex to decimal
+    digits[1] = decimal_value / 10; // Extract tens digit
+    digits[0] = decimal_value % 10; // Extract ones digit
 }
 
 void wait_for_v_sync() {
