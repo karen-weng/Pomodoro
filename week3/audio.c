@@ -95,7 +95,7 @@ int signal_val = 99999999;
 int counter = 0;
 // numSamples = 0.5s / (125us * Hz)
 // 40 samples half period is 100hz, 2 samples is 2khz
-int numSamples = 40; 
+int numSamples = 2; 
 
 // timer/hannalee variables
 volatile int pom_start_val = 25;
@@ -121,6 +121,10 @@ volatile int* PIXEL_BUF_CTRL_ptr = (int*) PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start; // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
+
+int n = 0;
+int count = 0;
+int digits [2];
 
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
@@ -160,19 +164,28 @@ int main(void) {
     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
     
-    int n = 0;
-    int count = 0;
-    int digits [2];
+    // int n = 0;
+    // int count = 0;
+    // int digits [2];
     while (1) {
         countdown_display(sec_time, digits);
-        wait_for_v_sync();
-        pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        clear_screen();
-        display_num(120, 100, 0xFFFF, digits[1]);
-        display_num(150, 100, 0xFFFF, digits[0]);
-        count++;
-        *LEDR_ptr = led_display_val;
 
+
+        volatile int* fbuf= (int*) 0xFF203020;
+        int status;
+        *fbuf = 1;
+        status = *(fbuf + 3);
+        if ((status & 0x01) == 0) {
+            draw();
+        }
+
+        // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        // clear_screen();
+        // display_num(120, 100, 0xFFFF, digits[1]);
+        // display_num(150, 100, 0xFFFF, digits[0]);
+        // count++;
+
+        *LEDR_ptr = led_display_val;
 
         fifospace = *(AUDIO_ptr + 1);
         
@@ -536,4 +549,13 @@ void play_alarm(void) {
         *(AUDIO_ptr + 2) = alarm_audio_left[i];
         *(AUDIO_ptr + 3) = alarm_audio_right[i];
     }
+}
+
+
+void draw(void) {
+    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+    clear_screen();
+    display_num(120, 100, 0xFFFF, digits[1]);
+    display_num(150, 100, 0xFFFF, digits[0]);
+    count++;
 }
