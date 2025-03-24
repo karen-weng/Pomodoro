@@ -212,8 +212,8 @@ int main(void) {
             }
 			
             // store both of those samples to output channels
-            *(AUDIO_ptr + 2) = left;
-            *(AUDIO_ptr + 3) = right;
+            *(AUDIO_ptr + 2) = signal_val;
+            *(AUDIO_ptr + 3) = signal_val;
 
         }
     }
