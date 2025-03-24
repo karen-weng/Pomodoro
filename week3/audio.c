@@ -171,6 +171,7 @@ int main(void) {
         
 // clear fifospace at some point
         if (recording && audio_array_index < 100000) {
+            *LEDR_ptr = 0xF;
             fifospace = *(AUDIO_ptr + 1); // read the audio port fifospace register
             if ((fifospace & 0x000000FF) > 0) // check RARC to see if there is data to read
             {
@@ -179,6 +180,10 @@ int main(void) {
                 int right = *(AUDIO_ptr + 3);
                 alarm_audio_left[audio_array_index] = left;
                 alarm_audio_right[audio_array_index] = right;
+
+                *(AUDIO_ptr + 2) = alarm_audio_left[audio_array_index];
+                *(AUDIO_ptr + 3) = alarm_audio_right[audio_array_index];
+
             }
             audio_array_index++;
         }
