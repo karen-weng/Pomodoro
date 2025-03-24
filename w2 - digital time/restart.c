@@ -77,16 +77,7 @@ int main(void) {
         *PIXEL_BUF_CTRL_ptr = 1;
         wait_for_v_sync();
         //clear_screen();
-        display_num(10,10,0xFFFF,0);
-        display_num(10,10+23,0xFFFF,1);
-        display_num(10,10+23+23,0xFFFF,2);
-        display_num(10,10+23+23+23,0xFFFF,3);
-        display_num(10,10+23+23+23+23,0xFFFF,4);
-        display_num(10+40,10,0xFFFF,5);
-        display_num(10+80,10,0xFFFF,6);
-        display_num(10+120,10,0xFFFF,7);
-        display_num(10+160,10,0xFFFF,8);
-        display_num(10+200,10,0xFFFF,9);
+
 
     }
 
