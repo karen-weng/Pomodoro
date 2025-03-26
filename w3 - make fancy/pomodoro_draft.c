@@ -104,9 +104,11 @@ volatile int* PIXEL_BUF_CTRL_ptr = (int*) PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start; // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
-short int white = 0xFFFF;
+short int white = 0xFFFFFF;
+short int red = 0xB85C5C;
+
 int loading[] = {100, 150, 220, 170};
-int num_coords[] = {132,80,200,120};
+int num_coords[] = {100,80,230,120};
 
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
@@ -131,7 +133,7 @@ int main(void) {
     // enable Nios V interrupts
     __asm__ volatile ("csrs mstatus, %0" :: "r"(mstatus_value));
 
-    sec_time = pom_start_val;
+    min_time = pom_start_val;
 
     /* set front pixel buffer to buffer 1 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer1; // first store the address in the  back buffer
@@ -146,9 +148,11 @@ int main(void) {
     clear_screen(); // pixel_buffer_start points to the pixel buffer
     draw_rectangle(loading, white);  // display loading bar;
     int n = 0;
-    int digits [2];
+    int min_digits [2];
+    int sec_digits [2];
     while (1) {
-        hex_to_dec(sec_time, digits);
+        hex_to_dec(min_time, min_digits);
+        hex_to_dec(sec_time, sec_digits);
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
         clear_rectangle(num_coords);
@@ -157,17 +161,21 @@ int main(void) {
         for (int i=loading[1]; i<loading[3]; i++) {
             int tot;
             if (study_mode) {
-                tot = pom_start_val;
+                tot = pom_start_val*60;
             } else if (study_session_count%4!=0) {
-                tot = small_break_start_val;
+                tot = small_break_start_val*60;
             } else {
-                tot = big_break_start_val;
+                tot = big_break_start_val*60;
             }
-            int num = (loading[2]-loading[0])*(tot-sec_time)/tot+loading[0];
+            int num = (loading[2]-loading[0])*(tot-min_time*60-sec_time)/tot+loading[0];
             draw_line(loading[0], i, num, i, white);
         }
-        display_num(132, 80, white, digits[1]);
-        display_num(164, 80, white, digits[0]);
+        display_num(100, 80, white, min_digits[1]);
+        display_num(132, 80, white, min_digits[0]);
+        plot_pixel(160, 95, white);
+        plot_pixel(160, 105, white);
+        display_num(164, 80, white, sec_digits[1]);
+        display_num(196, 80, white, sec_digits[0]);
         *LEDR_ptr = led_display_val;
     }
 }
@@ -288,8 +296,13 @@ void handler(void) {
 // FPGA interval timer interrupt service routine
 void itimer_ISR(void) {
     *TIMER_ptr = 0; // clear interrupt
-    sec_time -= 1;  // decrease pom timer counter
-    if (sec_time==0) {  // if pom timer done, on 'stop' mode
+    if (sec_time==0 && min_time!=0) {   // down a minute but timer not over
+        min_time -= 1;
+        sec_time = 59;
+    } else {
+        sec_time -= 1;  // decrease pom timer counter
+    }
+    if (sec_time==0 && min_time==0) {  // if pom timer done, on 'stop' mode
         key_mode = 3;
         *(TIMER_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
     }
@@ -310,12 +323,12 @@ void KEY_ISR(void) {
         } else if (key_mode==3) {   // update next countdown start value
             study_mode = !study_mode;
             if (study_mode) {
-                sec_time = pom_start_val;
+                min_time = pom_start_val;
                 study_session_count++;
             } else if (!study_mode && study_session_count%4!=0) {
-                sec_time = small_break_start_val;
+                min_time = small_break_start_val;
             } else if (!study_mode) {
-                sec_time = big_break_start_val;
+                min_time = big_break_start_val;
             } else {
                 printf("Unexpected study mode %d.", study_mode);
             }
@@ -327,38 +340,39 @@ void KEY_ISR(void) {
         *(TIMER_ptr + 0x1) = 0xB;
         key_mode = 1;   // auto-set to start
         study_mode = !study_mode;
+        sec_time = 0;
         if (study_mode) {
-            sec_time = pom_start_val;
+            min_time = pom_start_val;
             study_session_count++;
         } else if (!study_mode && study_session_count%4!=0) {
-            sec_time = small_break_start_val;
+            min_time = small_break_start_val;
         } else if (!study_mode) {
-            sec_time = big_break_start_val;
+            min_time = big_break_start_val;
         } else {
             printf("Unexpected study mode %d.", study_mode);
         }
     // for increasing & decreasing start value, check mode & if haven't ever pressed start
     } else if (pressed_key==4 && key_mode==1) { // increase start value
-        if (study_mode && sec_time==pom_start_val) {
+        if (study_mode && min_time==pom_start_val) {
             pom_start_val++;
-            sec_time = pom_start_val;
-        } else if (!study_mode && sec_time==small_break_start_val && study_session_count%4!=0) {
+            min_time = pom_start_val;
+        } else if (!study_mode && min_time==small_break_start_val && study_session_count%4!=0) {
             small_break_start_val++;
-            sec_time = small_break_start_val;
-        } else if (!study_mode && sec_time==big_break_start_val) {
+            min_time = small_break_start_val;
+        } else if (!study_mode && min_time==big_break_start_val) {
             big_break_start_val++;
-            sec_time = big_break_start_val;
+            min_time = big_break_start_val;
         }   // else user already started timer once, needs to skip/finish current session
     } else if (pressed_key==8 && key_mode==1) { // decrease start value
-        if (study_mode && sec_time==pom_start_val) {
+        if (study_mode && min_time==pom_start_val) {
             pom_start_val--;
-            sec_time = pom_start_val;       
-        } else if (!study_mode && sec_time==small_break_start_val && study_session_count%4!=0) {
+            min_time = pom_start_val;       
+        } else if (!study_mode && min_time==small_break_start_val && study_session_count%4!=0) {
             small_break_start_val--;
-            sec_time = small_break_start_val;
-        } else if (!study_mode && sec_time==big_break_start_val) {
+            min_time = small_break_start_val;
+        } else if (!study_mode && min_time==big_break_start_val) {
             big_break_start_val--;
-            sec_time = big_break_start_val;
+            min_time = big_break_start_val;
         }
     } else {
         printf("Unexpected key %d pressed.", pressed_key);
