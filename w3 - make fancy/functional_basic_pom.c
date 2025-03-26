@@ -107,8 +107,13 @@ short int buffer2[240][512];
 short int white = 0xFFFFFF;
 short int red = 0xB85C5C;
 
-int loading[] = {100, 150, 220, 170};
-int num_coords[] = {100,80,230,120};
+int num_w = 30;
+int num_l = 40;
+int loading1[] = {100, 130, 220, 150};
+int loading2[] = {101, 131, 219, 149};
+int area_to_erase[] = {100, 74, 220, 150};  // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+int dot1[] = {159, 90, 160, 91};
+int dot2[] = {159, 100, 160, 101};
 
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
@@ -146,8 +151,6 @@ int main(void) {
     *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer2;
     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
-    draw_rectangle(loading, white);  // display loading bar;
-    int n = 0;
     int min_digits [2];
     int sec_digits [2];
     while (1) {
@@ -155,10 +158,11 @@ int main(void) {
         hex_to_dec(sec_time, sec_digits);
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        clear_rectangle(num_coords);
-        clear_rectangle(loading);
-        draw_rectangle(loading, white);  // display loading bar;
-        for (int i=loading[1]; i<loading[3]; i++) {
+        clear_rectangle(area_to_erase);
+        //clear_rectangle(loading1);
+        draw_rectangle(loading1, white);  // display loading bar;
+        draw_rectangle(loading2, white);  // display loading bar;
+        for (int i=loading2[1]; i<loading2[3]; i++) {
             int tot;
             if (study_mode) {
                 tot = pom_start_val*60;
@@ -167,15 +171,15 @@ int main(void) {
             } else {
                 tot = big_break_start_val*60;
             }
-            int num = (loading[2]-loading[0])*(tot-min_time*60-sec_time)/tot+loading[0];
-            draw_line(loading[0], i, num, i, white);
+            int num = (loading2[2]-loading2[0])*(tot-min_time*60-sec_time)/tot+loading2[0];
+            draw_line(loading2[0], i, num, i, white);
         }
-        display_num(100, 80, white, min_digits[1]);
-        display_num(132, 80, white, min_digits[0]);
-        plot_pixel(160, 95, white);
-        plot_pixel(160, 105, white);
-        display_num(164, 80, white, sec_digits[1]);
-        display_num(196, 80, white, sec_digits[0]);
+        display_num(loading1[0], loading1[1]-num_l*1.4, white, min_digits[1]);
+        display_num(loading1[0]+num_w, loading1[1]-num_l*1.4, white, min_digits[0]);
+        draw_rectangle(dot1, white);
+        draw_rectangle(dot2, white);
+        display_num(loading1[2]-num_w*2, loading1[1]-num_l*1.4, white, sec_digits[1]);
+        display_num(loading1[2]-num_w, loading1[1]-num_l*1.4, white, sec_digits[0]);
         *LEDR_ptr = led_display_val;
     }
 }
@@ -190,7 +194,6 @@ void wait_for_v_sync() {
 }
 
 void plot_pixel(int x, int y, short int line_color) {
-    volatile short int *pixel_address;
     int offset = (y << 10) + (x << 1);
     *(volatile short int*)(pixel_buffer_start + offset) = line_color;
 }
@@ -228,37 +231,37 @@ void clear_rectangle(int coords[]) {
 void display_num(int x, int y, short int line_color, int num) {
     if (num!=1 && num!=4) { // seg 0: 0 2 3 5 6 7 8 9
         for (int r=y+2; r<y+4; r++)
-        for (int c=x+4; c<x+18; c++)
+        for (int c=x+8; c<x+num_w-8; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=5 && num!=6) { // seg 1: 0 1 2 3 4 7 8 9
         for (int r=y+4; r<y+19; r++)
-        for (int c=x+18; c<x+20; c++)
+        for (int c=x+num_w-8; c<x+num_w-6; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=2) { // seg 2: 0 1 3 4 5 6 7 8 9
-        for (int r=y+21; r<y+36; r++)
-        for (int c=x+18; c<x+20; c++)
+        for (int r=y+21; r<y+num_l-4; r++)
+        for (int c=x+num_w-8; c<x+num_w-6; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=1 && num!=4 && num!=7) { // seg 3: 0 2 3 5 6 8 9
-        for (int r=y+36; r<y+38; r++)
-        for (int c=x+4; c<x+18; c++)
+        for (int r=y+36; r<y+num_l-2; r++)
+        for (int c=x+8; c<x+num_w-8; c++)
         plot_pixel(c, r, line_color);
     }
     if (num==0 || num==2 || num==6 || num==8) { // seg 4: 0 2 6 8
-        for (int r=y+21; r<y+36; r++)
-        for (int c=x+2; c<x+4; c++)
+        for (int r=y+21; r<y+num_l-4; r++)
+        for (int c=x+6; c<x+8; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=1 && num!=2 && num!=3 && num!=7) { // seg 5: 0 4 5 6 8 9
         for (int r=y+4; r<y+19; r++)
-        for (int c=x+2; c<x+4; c++)
+        for (int c=x+6; c<x+8; c++)
         plot_pixel(c, r, line_color);
     }
     if (num!=0 && num!=1 && num!=7) { // seg 6: 2 3 4 5 6 8 9
         for (int r=y+19; r<y+21; r++)
-        for (int c=x+4; c<x+18; c++)
+        for (int c=x+8; c<x+num_w-8; c++)
         plot_pixel(c, r, line_color);
     }
 }
