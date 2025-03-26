@@ -66,7 +66,7 @@ void set_PS2();
 void PS2_ISR(void); // IRQ = 22
 void pressed_enter(void);
 void play_alarm(void);
-void draw(void);
+void draw(int digits[], int count);
 
 
 // keyboard variables
@@ -123,9 +123,9 @@ int pixel_buffer_start; // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
 
-int n = 0;
-int count = 0;
-int digits [2];
+// int n = 0;
+// int count = 0;
+// int digits [2];
 
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
@@ -165,20 +165,23 @@ int main(void) {
     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
     
-    // int n = 0;
-    // int count = 0;
-    // int digits [2];
+    int n = 0;
+    int count = 0;
+    int digits [2];
     while (1) {
         countdown_display(sec_time, digits);
-
-
         volatile int* fbuf= (int*) 0xFF203020;
         int status;
         *fbuf = 1;
         status = *(fbuf + 3);
         if ((status & 0x01) == 0) {
-            draw();
+            pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+            *LEDR_ptr = 0xFFF;
+            draw(digits, count);
         }
+        *LEDR_ptr = status;
+
+        //sleep
 
         // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
         // clear_screen();
@@ -186,7 +189,7 @@ int main(void) {
         // display_num(150, 100, 0xFFFF, digits[0]);
         // count++;
 
-        *LEDR_ptr = led_display_val;
+        // *LEDR_ptr = led_display_val;
 
         fifospace = *(AUDIO_ptr + 1);
         
@@ -553,8 +556,8 @@ void play_alarm(void) {
 }
 
 
-void draw(void) {
-    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+void draw(int digits[], int count) {
+    // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
     clear_screen();
     display_num(120, 100, 0xFFFF, digits[1]);
     display_num(150, 100, 0xFFFF, digits[0]);
