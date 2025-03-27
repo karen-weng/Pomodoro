@@ -122,6 +122,7 @@ int pixel_buffer_start; // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
 
+volatile int sync_ready = 0;
 
 void check_v_sync() {
     volatile int* fbuf = (int*) 0xFF203020;

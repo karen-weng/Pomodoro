@@ -66,8 +66,10 @@ void set_PS2();
 void PS2_ISR(void); // IRQ = 22
 void pressed_enter(void);
 void play_alarm(void);
+void draw(int digits[]);
+void clear_digit_area(int x, int y);
 
-
+void draw_simple(int count1, int count2);
 // keyboard variables
 volatile int *PS2_ptr = (int *)0xFF200100; // PS/2 port address
 volatile unsigned char PS2_data;
@@ -95,7 +97,7 @@ int signal_val = 99999999;
 int counter = 0;
 // numSamples = 0.5s / (125us * Hz)
 // 40 samples half period is 100hz, 2 samples is 2khz
-int numSamples = 40; 
+int numSamples = 2; 
 
 // timer/hannalee variables
 volatile int pom_start_val = 25;
@@ -122,18 +124,29 @@ int pixel_buffer_start; // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
 
+
+volatile short int *pixel_address;
+
+int digits [2];
+bool drawDigit = true;
+
+// int n = 0;
+// int count = 0;
+// int digits [2];
+
+
 volatile int sync_ready = 0;
+int status = 0;
 
 void check_v_sync() {
-    volatile int* fbuf = (int*) 0xFF203020;
-    int status;
-    
-    *fbuf = 1;  // Trigger sync
+    volatile int* fbuf= (int*) 0xFF203020;
+    // int status;
+    *fbuf = 1;
     status = *(fbuf + 3);
     
-    // Set a flag instead of blocking
     sync_ready = ((status & 0x01) == 0);
 }
+
 
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
@@ -174,39 +187,50 @@ int main(void) {
     clear_screen(); // pixel_buffer_start points to the pixel buffer
     
     int n = 0;
-    int count = 0;
+    int count1 = 0;
+    int count2= 0;
     int digits [2];
+    int status = 0;
+    
     while (1) {
-        countdown_display(sec_time, digits);
-        wait_for_v_sync();
-        pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        clear_screen();
-        display_num(120, 100, 0xFFFF, digits[1]);
-        display_num(150, 100, 0xFFFF, digits[0]);
-        count++;
-        *LEDR_ptr = led_display_val;
+        // countdown_display(sec_time, digits);
+        // volatile int* fbuf= (int*) 0xFF203020;
+        // int status;
+        // *fbuf = 1;
+        // status = *(fbuf + 3);
+        // if ((status & 0x01) == 0) {
+        //     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        //     *LEDR_ptr = 0xFFF;
+        //     draw_simple(count);
+        //     count++;
+        // }
 
+        // volatile int* fbuf= (int*) 0xFF203020;
+        // // wait_for_v_sync();
+        // check_v_sync();
+        // if (sync_ready) {
+            
+        //     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        //     // clear_screen();
+        //     draw_simple(count1, count2);
+        //     count1++;
+        //     if (count1> 100) {
+        //         count1 = 0;
+        //         count2++;
+        //     }
+        // }
+        
+
+        check_v_sync();
+        
+        if (sync_ready && drawDigit) {
+            pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+    
+            draw(digits);
+            drawDigit = false;
+        }
 
         fifospace = *(AUDIO_ptr + 1);
-        
-// clear fifospace at some point
-        if (recording && audio_array_index < 100000) {
-            *LEDR_ptr = 0xF;
-            // fifospace = *(AUDIO_ptr + 1); // read the audio port fifospace register
-            if ((fifospace & 0x000000FF) > 0) // check RARC to see if there is data to read
-            {
-                // load both input microphone channels - just get one sample from each
-                int left = *(AUDIO_ptr + 2);
-                int right = *(AUDIO_ptr + 3);
-                alarm_audio_left[audio_array_index] = left;
-                alarm_audio_right[audio_array_index] = right;
-
-                *(AUDIO_ptr + 2) = alarm_audio_left[audio_array_index];
-                *(AUDIO_ptr + 3) = alarm_audio_right[audio_array_index];
-
-            }
-            audio_array_index++;
-        }
 
         if (key_mode == 3) {
             *(AUDIO_ptr + 2) = signal_val; // Left channel
@@ -255,10 +279,14 @@ void handler(void) {
 void itimer_ISR(void) {
     *TIMER_ptr = 0; // clear interrupt
     sec_time -= 1;  // decrease pom timer counter
+    drawDigit = true;
     if (sec_time==0) {  // if pom timer done, on 'stop' mode
         key_mode = 3;
         *(TIMER_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
     }
+    
+    
+
 }
 
 // KEY port interrupt service routine
@@ -323,7 +351,6 @@ void clear_screen() {
 }
 
 void plot_pixel(int x, int y, short int line_color) {
-    volatile short int *pixel_address;
     int offset = (y << 10) + (x << 1);
     *(volatile short int*)(pixel_buffer_start + offset) = line_color;
 }
@@ -549,4 +576,31 @@ void play_alarm(void) {
         *(AUDIO_ptr + 2) = alarm_audio_left[i];
         *(AUDIO_ptr + 3) = alarm_audio_right[i];
     }
+}
+
+
+void clear_digit_area(int x, int y) {
+    for (int r = y; r < y + 40; r++) { // Adjust height as needed
+        for (int c = x; c < x + 20; c++) { // Adjust width as needed
+            plot_pixel(c, r, 0); // Clear to black
+        }
+    }
+}
+
+void draw(int digits[]) {
+    countdown_display(sec_time, digits);
+
+    // Clear only the areas where the digits will be drawn
+    clear_digit_area(120, 100); // Clear tens digit area
+    clear_digit_area(150, 100); // Clear ones digit area
+
+    // Draw the digits
+    display_num(120, 100, 0xFFFF, digits[1]); // Draw tens digit
+    display_num(150, 100, 0xFFFF, digits[0]); // Draw ones digit
+}
+
+
+
+void draw_simple(int count1, int count2) {
+    plot_pixel(50 + count1, 50+ count2, 0xFFFF);
 }
