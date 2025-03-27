@@ -122,6 +122,18 @@ int pixel_buffer_start; // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
 
+
+void check_v_sync() {
+    volatile int* fbuf = (int*) 0xFF203020;
+    int status;
+    
+    *fbuf = 1;  // Trigger sync
+    status = *(fbuf + 3);
+    
+    // Set a flag instead of blocking
+    sync_ready = ((status & 0x01) == 0);
+}
+
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
      * accesses will always go to the memory (I/O) address */
