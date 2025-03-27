@@ -92,8 +92,8 @@ volatile int *TIMER_ptr = (int *) TIMER_BASE;
 volatile int *KEY_ptr = (int *) KEY_BASE;
 
 void plot_pixel(int, int, short int); // plots one pixel
-void clear_screen();    // clear whole screen
-void clear_rectangle(int []);
+void clear_screen(short int);    // clear whole screen
+void clear_rectangle(int [], short int);
 void display_num(int, int, short int, int);
 void hex_to_dec(int, int*);
 void draw_line(int, int, int, int, short int);
@@ -104,14 +104,20 @@ volatile int* PIXEL_BUF_CTRL_ptr = (int*) PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start; // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
-short int white = 0xFFFFFF;
-short int red = 0xB85C5C;
+short int white = 0xFFFF;
+short int red = 0xB2EB;
+short int dark_red = 0xA489;
+short int teal = 0x5B92;
+short int dark_teal = 0x4310;
+short int navy = 0x52F3;
+short int dark_navy = 0x44D2;
+short int colour;
 
 int num_w = 30;
 int num_l = 40;
 int loading1[] = {100, 130, 220, 150};
 int loading2[] = {101, 131, 219, 149};
-int area_to_erase[] = {100, 74, 220, 150};  // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+int area_to_erase[] = {100, 74, 220, 151};  // UPDATE THIS IF TWEAKING DISPLAY LOCATION
 int dot1[] = {159, 90, 160, 91};
 int dot2[] = {159, 100, 160, 101};
 
@@ -139,18 +145,18 @@ int main(void) {
     __asm__ volatile ("csrs mstatus, %0" :: "r"(mstatus_value));
 
     min_time = pom_start_val;
-
+    colour = red;
     /* set front pixel buffer to buffer 1 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer1; // first store the address in the  back buffer
     /* now, swap the front/back buffers, to set the front buffer location */
     wait_for_v_sync();
     /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *PIXEL_BUF_CTRL_ptr;
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
+    clear_screen(colour); // pixel_buffer_start points to the pixel buffer
     /* set back pixel buffer to buffer 2 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer2;
     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
+    clear_screen(colour); // pixel_buffer_start points to the pixel buffer
     int min_digits [2];
     int sec_digits [2];
     while (1) {
@@ -158,7 +164,7 @@ int main(void) {
         hex_to_dec(sec_time, sec_digits);
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        clear_rectangle(area_to_erase);
+        clear_rectangle(area_to_erase, colour);
         //clear_rectangle(loading1);
         draw_rectangle(loading1, white);  // display loading bar;
         draw_rectangle(loading2, white);  // display loading bar;
@@ -217,15 +223,15 @@ void draw_rectangle(int coords[], short int colour) {   // empty rectangle (not 
     draw_line(coords[2], coords[1], coords[2], coords[3], colour);
 }
 
-void clear_screen() {
+void clear_screen(short int colour) {
     int coords[] = {0, 320, 0, 240};
-    clear_rectangle(coords);
+    clear_rectangle(coords, colour);
 }
 
-void clear_rectangle(int coords[]) {
+void clear_rectangle(int coords[], short int colour) {
     for (int x = coords[0]; x < coords[2]; x++)
     for (int y = coords[1]; y < coords[3]; y++)
-    plot_pixel (x, y, 0);
+    plot_pixel (x, y, colour);
 }
 
 void display_num(int x, int y, short int line_color, int num) {
@@ -328,10 +334,13 @@ void KEY_ISR(void) {
             if (study_mode) {
                 min_time = pom_start_val;
                 study_session_count++;
+                colour = red;
             } else if (!study_mode && study_session_count%4!=0) {
                 min_time = small_break_start_val;
+                colour = teal;
             } else if (!study_mode) {
                 min_time = big_break_start_val;
+                colour = navy;
             } else {
                 printf("Unexpected study mode %d.", study_mode);
             }
@@ -347,10 +356,13 @@ void KEY_ISR(void) {
         if (study_mode) {
             min_time = pom_start_val;
             study_session_count++;
+            colour = red;
         } else if (!study_mode && study_session_count%4!=0) {
             min_time = small_break_start_val;
+            colour = teal;
         } else if (!study_mode) {
             min_time = big_break_start_val;
+            colour = navy;
         } else {
             printf("Unexpected study mode %d.", study_mode);
         }
