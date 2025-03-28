@@ -61,6 +61,7 @@ void set_itimer(void);
 void set_itimer_audio(void);
 void set_KEY(void);
 void itimer_ISR(void);
+void audio_ISR_timer2(void);
 void KEY_ISR(void);
 
 void set_PS2();
@@ -96,6 +97,8 @@ volatile int study_session_count = 1;
 volatile int *LEDR_ptr = (int *) LEDR_BASE;
 volatile int *HEX3_HEX0_ptr = (int *) HEX3_HEX0_BASE;
 volatile int *TIMER_ptr = (int *) TIMER_BASE;
+volatile int *TIMER_AUDIO_ptr = (int *) TIMER_2_BASE;
+
 volatile int *KEY_ptr = (int *) KEY_BASE;
 
 void plot_pixel(int, int, short int); // plots one pixel
@@ -122,6 +125,33 @@ int area_to_erase[] = {100, 74, 220, 150};  // UPDATE THIS IF TWEAKING DISPLAY L
 int dot1[] = {159, 90, 160, 91};
 int dot2[] = {159, 100, 160, 101};
 
+
+//audio variables
+int samples[] = {0x00a1daf8,
+    0xfdc16468,
+    0xf5c8dc90,
+    0xef98c320,
+    0xefce6de0,
+    0xf8a9df18,
+    0xf8581ce0,
+    0xf7732470};
+
+int samples_n = 8;
+int sample_index = 0;
+
+struct audio_t {
+	volatile unsigned int control;
+	volatile unsigned char rarc;
+	volatile unsigned char ralc;
+	volatile unsigned char warc;
+	volatile unsigned char walc;
+    volatile unsigned int ldata;
+	volatile unsigned int rdata;
+};
+
+struct audio_t *const AUDIO_ptr = ((struct audio_t *)AUDIO_BASE);
+
+
 int main(void) {
     /* Declare volatile pointers to I/O registers (volatile means that the
      * accesses will always go to the memory (I/O) address */
@@ -140,7 +170,7 @@ int main(void) {
     // disable all interrupts that are currently enabled
     __asm__ volatile ("csrr %0, mie" : "=r"(mie_value));
     __asm__ volatile ("csrc mie, %0" :: "r"(mie_value));
-    mie_value = 0x464000; // KEY, itimer, itimer2 (audio), ps/2 port (non-dual) -- irq 16, 17, 18, 22
+    mie_value = 0x470000; // KEY, itimer, itimer2 (audio), ps/2 port (non-dual) -- irq 16, 17, 18, 22
     // set interrupt enables
     __asm__ volatile ("csrs mie, %0" :: "r"(mie_value));
     // enable Nios V interrupts
@@ -294,8 +324,10 @@ void handler(void) {
     __asm__ volatile ("csrr %0, mcause" : "=r"(mcause_value));
     if (mcause_value == 0x80000010) // interval timer
         itimer_ISR();
-    else if (mcause_value == 0x80000011) // interval timer 2 for audio
+    else if (mcause_value == 0x80000011) {// interval timer 2 for audio
+        led_display_val = 1;
         audio_ISR_timer2();
+    }
     else if (mcause_value == 0x80000012) // KEY port
         KEY_ISR();
     else if (mcause_value == 0x80000016) // keyboard ps2
@@ -323,10 +355,22 @@ void itimer_ISR(void) {
 
 // audio ISR, techcially timer
 void audio_ISR_timer2(void) {
-    *TIMER_ptr = 0; // clear interrupt
+    *TIMER_AUDIO_ptr = 0; // reset interrupt
     // already set to continue timer
 
+    led_display_val = 0xF;
+
     // ADD AUDIO FIFO STUFF HERE
+    // Check if FIFO has space
+    if (AUDIO_ptr->warc > 0) {
+        AUDIO_ptr->ldata = samples[sample_index];
+        AUDIO_ptr->rdata = samples[sample_index];
+
+        sample_index++;
+        if (sample_index >= samples_n) {
+            sample_index = 0; // Loop back if end is reached
+        }
+    }
 }
 
 // KEY port interrupt service routine
@@ -402,7 +446,7 @@ void KEY_ISR(void) {
 
 // KEY port interrupt service routine
 void PS2_ISR(void) { // IRQ = 22
-    led_display_val = 0;
+    // led_display_val = 0;
     PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
 
     // Update byte history
@@ -418,18 +462,18 @@ void PS2_ISR(void) { // IRQ = 22
             {
             // arrow keys
             case 0x75:
-                led_display_val = 16;
+                // led_display_val = 16;
                 pressed_up();
                 break; // Up
             case 0x6B:
-                led_display_val = 32;
+                // led_display_val = 32;
                 break; // Left
             case 0x72:
-                led_display_val = 64;
+                // led_display_val = 64;
                 pressed_down();
                 break; // Down
             case 0x74:
-                led_display_val = 128;
+                // led_display_val = 128;
                 break; // Right
             }
         }
@@ -439,43 +483,43 @@ void PS2_ISR(void) { // IRQ = 22
             // numbers 0-9
             //0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46
             case 0x45:
-                led_display_val = 0;
+                // led_display_val = 0;
                 break; // 0
             case 0x16:
-                led_display_val = 1;
+                // led_display_val = 1;
                 break; // 1
             case 0x1E:
-                led_display_val = 2;
+                // led_display_val = 2;
                 break; // 2
             case 0x26:
-                led_display_val = 3;
+                // led_display_val = 3;
                 break; // 3
             case 0x25:
-                led_display_val = 4;
+                // led_display_val = 4;
                 break; // 4
             case 0x2E:
-                led_display_val = 5;
+                // led_display_val = 5;
                 break; // 5
             case 0x36:
-                led_display_val = 6;
+                // led_display_val = 6;
                 break; // 6
             case 0x3D:
-                led_display_val = 7;
+                // led_display_val = 7;
                 break; // 7
             case 0x3E:
-                led_display_val = 8;
+                // led_display_val = 8;
                 break; // 8
             case 0x46:
-                led_display_val = 9;
+                // led_display_val = 9;
                 break; // 9
 
             // letters
             case 0x2D: // right now deosnt care if it is currently alarm or not
-                led_display_val = 256;
+                // led_display_val = 256;
                 // recording = false;
                 break; // R
             case 0x4D: // right now deosnt care if it is currently alarm or not
-                led_display_val = 256;
+                // led_display_val = 256;
                 // play_alarm(void);
                 break; // R
 
@@ -484,38 +528,38 @@ void PS2_ISR(void) { // IRQ = 22
             // function keys
             // 0x05, 0x06, 0x04 
             case 0x05:
-                led_display_val = 256;
+                // led_display_val = 256;
                 break; // F1
             case 0x06:
-                led_display_val = 256;
+                // led_display_val = 256;
                 break; // F2
             case 0x04:
-                led_display_val = 256;
+                // led_display_val = 256;
                 break; // F3
 
 
             //other // enter, tab, space, backspace
             //0x5A, 0x0D, 0x29, 0x66
             case 0x5A:
-                led_display_val = 512;
+                // led_display_val = 512;
                 pressed_enter();
                 break; // enter
             case 0x0D:
-                led_display_val = 512;
+                // led_display_val = 512;
                 pressed_tab();
                 break; // tab
             case 0x29:
-                led_display_val = 256;
+                // led_display_val = 256;
                 break; // space
             case 0x66:
-                led_display_val = 256;
+                // led_display_val = 256;
                 break; // backspace
             }
         }
     }
     else {
         if (byte3 == 0x2D) {
-            led_display_val = 256;
+            // led_display_val = 256;
             // recording = true;
         }
     }
@@ -528,6 +572,7 @@ void pressed_enter(void) {   // user presses start/pause/stop
 
     if (key_mode==1) {  // start
         *(TIMER_ptr + 0x1) = 0x7;   // 0b0111 (start, cont, ito)
+        *(TIMER_AUDIO_ptr + 0x1) = 0x7; 
         key_mode = 2;
     } else if (key_mode==2) {   // pause
         *(TIMER_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
@@ -612,14 +657,14 @@ void set_itimer(void) {
 
 // Configure the 8Mhz, 125us timer for audio in the second interval timer
 void set_itimer_audio(void) {
-    volatile int *TIMER_ptr = (int *) TIMER_2_BASE;
+    volatile int *TIMER_AUDIO_ptr = (int *) TIMER_2_BASE;
     // set the interval timer period
     int load_val = 6250; // for 8Mhz, 125us
-    *(TIMER_ptr + 0x2) = (load_val & 0xFFFF);
-    *(TIMER_ptr + 0x3) = (load_val >> 16) & 0xFFFF;
-    *(TIMER_ptr + 0x0) = 0;
+    *(TIMER_AUDIO_ptr + 0x2) = (load_val & 0xFFFF);
+    *(TIMER_AUDIO_ptr + 0x3) = (load_val >> 16) & 0xFFFF;
+    *(TIMER_AUDIO_ptr + 0x0) = 0;
     // turn on CONT & ITO bits (do not start)
-    *(TIMER_ptr + 0x1) = 0x3; // STOP = 1, START = 1, CONT = 1, ITO = 1
+    *(TIMER_AUDIO_ptr + 0x1) = 0x3; // STOP = 1, START = 1, CONT = 1, ITO = 1
 }
 
 // Configure the KEY port
