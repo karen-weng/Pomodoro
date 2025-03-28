@@ -144423,8 +144423,6 @@ int rooster_samples[] = {
     0x00ffffff
 };
 int rooster_num_samples = 28961;
-
-
 // rooster bottom
 
 
@@ -144432,6 +144430,9 @@ int background_sample_index = 0;
 int pause_sample_index = 0;
 int rooster_sample_index = 0;
 
+
+double volume_factor = 0.5;
+bool mute = false;
 
 struct audio_t
 {
@@ -144691,8 +144692,10 @@ void play_audio_samples(int *samples, int samples_n, int *sample_index)
     {
         if (AUDIO_ptr->warc > 0)
         {
-            AUDIO_ptr->ldata = samples[*sample_index];
-            AUDIO_ptr->rdata = samples[*sample_index];
+            int scaled_sample = (int)(samples[*sample_index] * volume_factor);
+
+            AUDIO_ptr->ldata = scaled_sample;
+            AUDIO_ptr->rdata = scaled_sample;
 
             (*sample_index)++;
         }
@@ -144711,27 +144714,28 @@ void audio_ISR_timer2(void)
 
     // TODO add mute variable
 
-    if (key_mode == 2)
-    {
-        if (study_mode == true)
-        { // studying
-            play_audio_samples(background_samples, background_num_samples, &background_sample_index);
-
-        } // if counting
-        else
+    if (!mute) {
+        if (key_mode == 2)
         {
-            // play_audio_samples(pause_samples, pause_num_samples, &pause_sample_index);
+            if (study_mode == true)
+            { // studying
+                play_audio_samples(background_samples, background_num_samples, &background_sample_index);
+
+            } // if counting
+            else
+            {
+                // play_audio_samples(pause_samples, pause_num_samples, &pause_sample_index);
+            }
+        }
+        else if (key_mode == 1)
+        {
+            play_audio_samples(pause_samples, pause_num_samples, &pause_sample_index);
+        }
+        else if (key_mode == 3) {
+            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_sample_index);
         }
     }
-    else if (key_mode == 1)
-    {
-        play_audio_samples(pause_samples, pause_num_samples, &pause_sample_index);
-    }
-    else if (key_mode == 3) {
-        play_audio_samples(rooster_samples, rooster_num_samples, &rooster_sample_index);
-    }
-    // ADD AUDIO FIFO STUFF HERE
-    // Check if FIFO has space
+    
 }
 
 
@@ -144933,13 +144937,20 @@ void PS2_ISR(void)
             // 0x05, 0x06, 0x04
             case 0x05:
                 // led_display_val = 256;
-                break; // F1
+                mute = !mute;
+                break; // F1 // mute
             case 0x06:
                 // led_display_val = 256;
-                break; // F2
+                if (volume_factor > 0.1) {
+                    volume_factor -= 0.1;
+                }
+                break; // F2 // decrease volume
             case 0x04:
                 // led_display_val = 256;
-                break; // F3
+                if (volume_factor < 0.9) {
+                    volume_factor += 0.1;
+                }
+                break; // F3 // increase volume
 
             // other // enter, tab, space, backspace
             // 0x5A, 0x0D, 0x29, 0x66
