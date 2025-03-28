@@ -65,11 +65,14 @@ void KEY_ISR(void);
 void set_PS2();
 void PS2_ISR(void); // IRQ = 22
 
+// keyboard functions
+void pressed_enter(void);
+void pressed_tab(void);
+void pressed_up(void);
+void pressed_down(void);
+
+// ps2 variables
 volatile int *PS2_ptr = (int *)0xFF200100; // PS/2 port address
-// int makeNumbers[] = {0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46};
-// int makeArrows[] = {0x75, 0x6B, 0x72, 0x74}; // up, left, down, right
-// int makeOther[] = {0x5A, 0x29, 0x66};        // enter, space, backspace
-// int makeOtherE0[] = {0x05, 0x06, 0x04};      // F1, F2, F3
 volatile unsigned char PS2_data;
 volatile unsigned char RVALID;
 volatile int led_display_val = 0;
@@ -77,6 +80,9 @@ volatile unsigned char byte1 = 0;
 volatile unsigned char byte2 = 0;
 volatile unsigned char byte3 = 0;
 
+
+
+// pom timer variables
 volatile int pom_start_val = 25;
 volatile int small_break_start_val = 5;
 volatile int big_break_start_val = 15;
@@ -386,23 +392,29 @@ void KEY_ISR(void) {
 void PS2_ISR(void) { // IRQ = 22
     led_display_val = 0;
     PS2_data = *PS2_ptr; // Read data and implicitly decrement RAVAIL
+
     // Update byte history
     byte1 = byte2;
     byte2 = byte3;
     byte3 = PS2_data & 0xFF;
-
-    if (byte2 == 0xF0) {
+    
+    
+    if (byte2 == 0xF0)
+    {
         if (byte1 == 0xE0) {
-            switch (byte3) {
+            switch (byte3)
+            {
             // arrow keys
             case 0x75:
                 led_display_val = 16;
+                pressed_up();
                 break; // Up
             case 0x6B:
                 led_display_val = 32;
                 break; // Left
             case 0x72:
                 led_display_val = 64;
+                pressed_down();
                 break; // Down
             case 0x74:
                 led_display_val = 128;
@@ -410,7 +422,8 @@ void PS2_ISR(void) { // IRQ = 22
             }
         }
         else {
-            switch (byte3) {
+            switch (byte3)
+            {
             // numbers 0-9
             //0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46
             case 0x45:
@@ -444,6 +457,18 @@ void PS2_ISR(void) { // IRQ = 22
                 led_display_val = 9;
                 break; // 9
 
+            // letters
+            case 0x2D: // right now deosnt care if it is currently alarm or not
+                led_display_val = 256;
+                // recording = false;
+                break; // R
+            case 0x4D: // right now deosnt care if it is currently alarm or not
+                led_display_val = 256;
+                // play_alarm(void);
+                break; // R
+
+            
+
             // function keys
             // 0x05, 0x06, 0x04 
             case 0x05:
@@ -456,11 +481,17 @@ void PS2_ISR(void) { // IRQ = 22
                 led_display_val = 256;
                 break; // F3
 
-            //other // enter, space, backspace
-            //0x5A, 0x29, 0x66
+
+            //other // enter, tab, space, backspace
+            //0x5A, 0x0D, 0x29, 0x66
             case 0x5A:
-                led_display_val = 256;
+                led_display_val = 512;
+                pressed_enter();
                 break; // enter
+            case 0x0D:
+                led_display_val = 512;
+                pressed_tab();
+                break; // tab
             case 0x29:
                 led_display_val = 256;
                 break; // space
@@ -470,7 +501,90 @@ void PS2_ISR(void) { // IRQ = 22
             }
         }
     }
+    else {
+        if (byte3 == 0x2D) {
+            led_display_val = 256;
+            // recording = true;
+        }
+    }
 }
+
+void pressed_enter(void) {   // user presses start/pause/stop
+    // mode 1= currently paused
+    // mode 2= currently counting
+    // mode 3= 00, currently ringing
+
+    if (key_mode==1) {  // start
+        *(TIMER_ptr + 0x1) = 0x7;   // 0b0111 (start, cont, ito)
+        key_mode = 2;
+    } else if (key_mode==2) {   // pause
+        *(TIMER_ptr + 0x1) = 0xB;   // 0b1011 (stop, cont, ito)
+        key_mode = 1;
+    } else if (key_mode==3) {   // update next countdown start value
+        study_mode = !study_mode;
+        if (study_mode) {
+            min_time = pom_start_val;
+            study_session_count++;
+        } else if (!study_mode && study_session_count%4!=0) {
+            min_time = small_break_start_val;
+        } else if (!study_mode) {
+            min_time = big_break_start_val;
+        } else {
+            printf("Unexpected study mode %d.", study_mode);
+        }
+        key_mode = 1;
+    } else {
+        printf("Unexpected key mode %d.", key_mode);
+    }
+}
+
+void pressed_tab(void) { // skip
+    *(TIMER_ptr + 0x1) = 0xB;
+    key_mode = 1;   // auto-set to start
+    study_mode = !study_mode;
+    sec_time = 0;
+    if (study_mode) {
+        min_time = pom_start_val;
+        study_session_count++;
+    } else if (!study_mode && study_session_count%4!=0) {
+        min_time = small_break_start_val;
+    } else if (!study_mode) {
+        min_time = big_break_start_val;
+    } else {
+        printf("Unexpected study mode %d.", study_mode);
+    }
+}
+
+void pressed_up(void) { 
+    if (key_mode==1) { // increase start value
+        if (study_mode && min_time==pom_start_val) {
+            pom_start_val++;
+            min_time = pom_start_val;
+        } else if (!study_mode && min_time==small_break_start_val && study_session_count%4!=0) {
+            small_break_start_val++;
+            min_time = small_break_start_val;
+        } else if (!study_mode && min_time==big_break_start_val) {
+            big_break_start_val++;
+            min_time = big_break_start_val;
+        }   // else user already started timer once, needs to skip/finish current session
+    }
+}
+
+void pressed_down(void) { // skip
+    if (key_mode==1) { // decrease start value
+        if (study_mode && min_time==pom_start_val) {
+            pom_start_val--;
+            min_time = pom_start_val;       
+        } else if (!study_mode && min_time==small_break_start_val && study_session_count%4!=0) {
+            small_break_start_val--;
+            min_time = small_break_start_val;
+        } else if (!study_mode && min_time==big_break_start_val) {
+            big_break_start_val--;
+            min_time = big_break_start_val;
+        }
+    }
+}
+
 
 // Configure the FPGA interval timer
 void set_itimer(void) {
