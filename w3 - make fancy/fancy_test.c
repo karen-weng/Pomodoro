@@ -95,6 +95,7 @@ void plot_pixel(int, int, short int); // plots one pixel
 void clear_screen(short int);    // clear whole screen
 void clear_rectangle(int [], short int);
 void display_num(int, int, short int, int);
+void update_num_countdown(int, int, short int, int);
 void hex_to_dec(int, int*);
 void draw_line(int, int, int, int, short int);
 void draw_rectangle(int[], short int);
@@ -153,10 +154,14 @@ int main(void) {
     /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *PIXEL_BUF_CTRL_ptr;
     clear_screen(colour); // pixel_buffer_start points to the pixel buffer
+    draw_rectangle(dot1, white);
+    draw_rectangle(dot2, white);
     /* set back pixel buffer to buffer 2 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int) &buffer2;
     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
     clear_screen(colour); // pixel_buffer_start points to the pixel buffer
+    draw_rectangle(dot1, white);
+    draw_rectangle(dot2, white);
     int min_digits [2];
     int sec_digits [2];
     while (1) {
@@ -164,7 +169,7 @@ int main(void) {
         hex_to_dec(sec_time, sec_digits);
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        clear_rectangle(area_to_erase, colour);
+        //clear_rectangle(area_to_erase, colour);
         //clear_rectangle(loading1);
         draw_rectangle(loading1, white);  // display loading bar;
         draw_rectangle(loading2, white);  // display loading bar;
@@ -182,11 +187,9 @@ int main(void) {
         }
         display_num(loading1[0], loading1[1]-num_l*1.4, white, min_digits[1]);
         display_num(loading1[0]+num_w, loading1[1]-num_l*1.4, white, min_digits[0]);
-        draw_rectangle(dot1, white);
-        draw_rectangle(dot2, white);
         display_num(loading1[2]-num_w*2, loading1[1]-num_l*1.4, white, sec_digits[1]);
         display_num(loading1[2]-num_w, loading1[1]-num_l*1.4, white, sec_digits[0]);
-        *LEDR_ptr = led_display_val;
+        *LEDR_ptr = sec_time;
     }
 }
 
@@ -223,18 +226,41 @@ void draw_rectangle(int coords[], short int colour) {   // empty rectangle (not 
     draw_line(coords[2], coords[1], coords[2], coords[3], colour);
 }
 
-void clear_screen(short int colour) {
-    int coords[] = {0, 320, 0, 240};
-    clear_rectangle(coords, colour);
+void clear_screen(short int c) {
+    int coords[] = {0, 0, 320, 240};
+    clear_rectangle(coords, c);
 }
 
-void clear_rectangle(int coords[], short int colour) {
+void clear_rectangle(int coords[], short int c) {
     for (int x = coords[0]; x < coords[2]; x++)
     for (int y = coords[1]; y < coords[3]; y++)
-    plot_pixel (x, y, colour);
+    plot_pixel (x, y, c);
 }
 
 void display_num(int x, int y, short int line_color, int num) {
+    // erase
+    for (int r=y+2; r<y+4; r++)         // seg 0
+    for (int c=x+8; c<x+num_w-8; c++)
+        plot_pixel(c, r, colour);
+    for (int r=y+4; r<y+19; r++)        // seg 1
+    for (int c=x+num_w-8; c<x+num_w-6; c++)
+        plot_pixel(c, r, colour);
+    for (int r=y+21; r<y+num_l-4; r++)  // seg 2
+    for (int c=x+num_w-8; c<x+num_w-6; c++)
+        plot_pixel(c, r, colour);
+    for (int r=y+36; r<y+num_l-2; r++)  // seg 3
+    for (int c=x+8; c<x+num_w-8; c++)
+        plot_pixel(c, r, colour);
+    for (int r=y+21; r<y+num_l-4; r++)  // seg 4
+    for (int c=x+6; c<x+8; c++)
+        plot_pixel(c, r, colour);
+    for (int r=y+4; r<y+19; r++)        // seg 5
+    for (int c=x+6; c<x+8; c++)
+        plot_pixel(c, r, colour);
+    for (int r=y+19; r<y+21; r++)       // seg 6
+    for (int c=x+8; c<x+num_w-8; c++)
+        plot_pixel(c, r, colour);
+    // draw
     if (num!=1 && num!=4) { // seg 0: 0 2 3 5 6 7 8 9
         for (int r=y+2; r<y+4; r++)
         for (int c=x+8; c<x+num_w-8; c++)
@@ -344,6 +370,16 @@ void KEY_ISR(void) {
             } else {
                 printf("Unexpected study mode %d.", study_mode);
             }
+            wait_for_v_sync();
+            pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+            clear_screen(colour);
+            draw_rectangle(dot1, white);
+            draw_rectangle(dot2, white);
+            wait_for_v_sync();
+            pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+            clear_screen(colour);
+            draw_rectangle(dot1, white);
+            draw_rectangle(dot2, white);
             key_mode = 1;
         } else {
             printf("Unexpected key mode %d.", key_mode);
@@ -366,8 +402,18 @@ void KEY_ISR(void) {
         } else {
             printf("Unexpected study mode %d.", study_mode);
         }
+        wait_for_v_sync();
+        pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        clear_screen(colour);
+        draw_rectangle(dot1, white);
+        draw_rectangle(dot2, white);
+        wait_for_v_sync();
+        pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        clear_screen(colour);
+        draw_rectangle(dot1, white);
+        draw_rectangle(dot2, white);
     // for increasing & decreasing start value, check mode & if haven't ever pressed start
-    } else if (pressed_key==4 && key_mode==1) { // increase start value
+    } else if (pressed_key==4 && key_mode==1 && min_time<99) { // increase start value
         if (study_mode && min_time==pom_start_val) {
             pom_start_val++;
             min_time = pom_start_val;
@@ -378,7 +424,7 @@ void KEY_ISR(void) {
             big_break_start_val++;
             min_time = big_break_start_val;
         }   // else user already started timer once, needs to skip/finish current session
-    } else if (pressed_key==8 && key_mode==1) { // decrease start value
+    } else if (pressed_key==8 && key_mode==1 && min_time>1) { // decrease start value
         if (study_mode && min_time==pom_start_val) {
             pom_start_val--;
             min_time = pom_start_val;       
