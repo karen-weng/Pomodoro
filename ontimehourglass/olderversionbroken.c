@@ -98,15 +98,38 @@ volatile int *TIMER_ptr = (int *)TIMER_BASE;
 volatile int *TIMER_AUDIO_ptr = (int *)TIMER_2_BASE;
 
 volatile int *KEY_ptr = (int *)KEY_BASE;
-
+// vga functions
 void plot_pixel(int, int, short int); // plots one pixel
 void clear_screen();                  // clear whole screen
 void clear_rectangle(int[]);
+
+// vga timer functions
 void display_num(int, int, short int, int);
 void hex_to_dec(int, int *);
 void draw_line(int, int, int, int, short int);
 void draw_rectangle(int[], short int);
 void wait_for_v_sync();
+
+// vga hourglass
+void draw_hourglass_frame();
+// void draw_hourglass_frame_big();
+void get_hourglass_bounds(int y, int *x_left, int *x_right);
+void setup_hourglass();
+
+void toggle_display();
+
+
+int hourglass_erase[] = {90, 50, 230, 190}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+
+int display_mode = 1; // 1 for loading bar, 2 for hourglass
+bool just_toggled_to_hourglass = false;
+int hourglass_draw_index = 0;
+int hourglass_sec_counter = 0;
+int hourglass_sec_to_wait = 0;
+int hourglass_top_segments = 60;
+bool hourglass_new_segment = false;
+int hourglass_x_left;
+int hourglass_x_right;
 
 volatile int *PIXEL_BUF_CTRL_ptr = (int *)PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start;      // global variable
@@ -144473,6 +144496,9 @@ int main(void)
     __asm__ volatile("csrs mstatus, %0" ::"r"(mstatus_value));
 
     min_time = pom_start_val;
+    hourglass_sec_to_wait = min_time;
+
+    
 
     /* set front pixel buffer to buffer 1 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int)&buffer1; // first store the address in the  back buffer
@@ -144480,7 +144506,7 @@ int main(void)
     wait_for_v_sync();
     /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *PIXEL_BUF_CTRL_ptr;
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
+    // clear_screen(); // pixel_buffer_start points to the pixel buffer
     /* set back pixel buffer to buffer 2 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int)&buffer2;
     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
@@ -144493,35 +144519,57 @@ int main(void)
         hex_to_dec(sec_time, sec_digits);
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        clear_rectangle(area_to_erase);
-        // clear_rectangle(loading1);
-        draw_rectangle(loading1, white); // display loading bar;
-        draw_rectangle(loading2, white); // display loading bar;
-        for (int i = loading2[1]; i < loading2[3]; i++)
-        {
-            int tot;
-            if (study_mode)
+
+        *LEDR_ptr = display_mode;
+
+
+        if (display_mode == 1) {
+            clear_rectangle(hourglass_erase); // clear hourglass form toggling
+            // clear_rectangle(area_to_erase);
+            // clear_rectangle(loading1);
+            draw_rectangle(loading1, white); // display loading bar;
+            draw_rectangle(loading2, white); // display loading bar;
+            for (int i = loading2[1]; i < loading2[3]; i++)
             {
-                tot = pom_start_val * 60;
+                int tot;
+                if (study_mode)
+                {
+                    tot = pom_start_val * 60;
+                }
+                else if (study_session_count % 4 != 0)
+                {
+                    tot = small_break_start_val * 60;
+                }
+                else
+                {
+                    tot = big_break_start_val * 60;
+                }
+                int num = (loading2[2] - loading2[0]) * (tot - min_time * 60 - sec_time) / tot + loading2[0];
+                draw_line(loading2[0], i, num, i, white);
             }
-            else if (study_session_count % 4 != 0)
-            {
-                tot = small_break_start_val * 60;
-            }
-            else
-            {
-                tot = big_break_start_val * 60;
-            }
-            int num = (loading2[2] - loading2[0]) * (tot - min_time * 60 - sec_time) / tot + loading2[0];
-            draw_line(loading2[0], i, num, i, white);
+
+            display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
+            display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
+            draw_rectangle(dot1, white);
+            draw_rectangle(dot2, white);
+            display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 1.4, white, sec_digits[1]);
+            display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
+            
+            *LEDR_ptr = 0;
         }
-        display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
-        display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
-        draw_rectangle(dot1, white);
-        draw_rectangle(dot2, white);
-        display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 1.4, white, sec_digits[1]);
-        display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
-        *LEDR_ptr = led_display_val;
+        else if (display_mode == 2){
+            if (just_toggled_to_hourglass) {
+                just_toggled_to_hourglass = false;
+                clear_rectangle(hourglass_erase);
+                setup_hourglass();
+            } 
+            if (hourglass_new_segment) {
+                get_hourglass_bounds(60 + hourglass_draw_index, &hourglass_x_left, &hourglass_x_right);
+                draw_line(hourglass_x_left, 60 + hourglass_draw_index, hourglass_x_right, 60 + hourglass_draw_index, 0x0); // erase sand
+            }
+        }
+
+
     }
 }
 
@@ -144556,7 +144604,40 @@ void draw_line(int x0, int y0, int x1, int y1, short int colour)
     }
     else
     {
-        // diagonal line
+        bool is_steep = abs(y1 - y0) > abs(x1 - x0);
+        if (is_steep)
+        {
+            int temp = x0;
+            x0 = y0;
+            y0 = temp;
+            temp = x1;
+            x1 = y1;
+            y1 = temp;
+        }
+        if (x0 > x1)
+        {
+            int temp = x0;
+            x0 = x1;
+            x1 = temp;
+            temp = y0;
+            y0 = y1;
+            y1 = temp;
+        }
+        int deltax = x1 - x0, deltay = abs(y1 - y0), error = -(deltax / 2), y = y0;
+        int y_step = (y0 < y1) ? 1 : -1;
+        for (int x = x0; x <= x1; x++)
+        {
+            if (is_steep)
+                plot_pixel(y, x, colour);
+            else
+                plot_pixel(x, y, colour);
+            error += deltay;
+            if (error > 0)
+            {
+                y += y_step;
+                error -= deltax;
+            }
+        }
     }
 }
 
@@ -144684,6 +144765,15 @@ void itimer_ISR(void)
         key_mode = 3;
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
     }
+    if (hourglass_sec_counter < hourglass_sec_to_wait) {
+        hourglass_sec_counter++;
+    }
+    else if (hourglass_sec_counter >= hourglass_sec_to_wait) {
+        hourglass_sec_counter = 0;
+        hourglass_draw_index++;
+        hourglass_new_segment = true;
+    }
+    
 }
 
 void play_audio_samples(int *samples, int samples_n, int *sample_index)
@@ -144876,6 +144966,7 @@ void PS2_ISR(void)
                 break; // Up
             case 0x6B:
                 // led_display_val = 32;
+                toggle_display();
                 break; // Left
             case 0x72:
                 // led_display_val = 64;
@@ -144883,6 +144974,7 @@ void PS2_ISR(void)
                 break; // Down
             case 0x74:
                 // led_display_val = 128;
+                toggle_display();
                 break; // Right
             }
         }
@@ -145004,15 +145096,18 @@ void pressed_enter(void)
         if (study_mode)
         {
             min_time = pom_start_val;
+            hourglass_sec_to_wait = pom_start_val;
             study_session_count++;
         }
         else if (!study_mode && study_session_count % 4 != 0)
         {
             min_time = small_break_start_val;
+            hourglass_sec_to_wait = small_break_start_val;
         }
         else if (!study_mode)
         {
             min_time = big_break_start_val;
+            hourglass_sec_to_wait = big_break_start_val;
         }
         else
         {
@@ -145035,15 +145130,18 @@ void pressed_tab(void)
     if (study_mode)
     {
         min_time = pom_start_val;
+        hourglass_sec_to_wait = pom_start_val;
         study_session_count++;
     }
     else if (!study_mode && study_session_count % 4 != 0)
     {
         min_time = small_break_start_val;
+        hourglass_sec_to_wait = small_break_start_val;
     }
     else if (!study_mode)
     {
         min_time = big_break_start_val;
+        hourglass_sec_to_wait = big_break_start_val;
     }
     else
     {
@@ -145059,16 +145157,19 @@ void pressed_up(void)
         {
             pom_start_val++;
             min_time = pom_start_val;
+            hourglass_sec_to_wait = pom_start_val;
         }
         else if (!study_mode && min_time == small_break_start_val && study_session_count % 4 != 0)
         {
             small_break_start_val++;
             min_time = small_break_start_val;
+            hourglass_sec_to_wait = small_break_start_val;
         }
         else if (!study_mode && min_time == big_break_start_val)
         {
             big_break_start_val++;
             min_time = big_break_start_val;
+            hourglass_sec_to_wait = big_break_start_val;
         } // else user already started timer once, needs to skip/finish current session
     }
 }
@@ -145094,6 +145195,7 @@ void pressed_down(void)
         }
     }
 }
+
 
 // Configure the FPGA interval timer
 void set_itimer(void)
@@ -145138,4 +145240,80 @@ void set_PS2()
         PS2_data = *PS2_ptr; // Read and discard
     }
     *(PS2_ptr + 1) = 1; // enable interrupts RE bit
+}
+
+
+void draw_hourglass_frame()
+{
+    draw_line(90, 50, 230, 50, 0x8494);   // Top horizontal line
+    draw_line(90, 50, 157, 120, 0x8494);  // Left diagonal down
+    draw_line(230, 50, 163, 120, 0x8494); // Right diagonal down
+
+    draw_line(157, 120, 163, 120, 0x8494); // Slight gap in middle
+
+    draw_line(157, 120, 90, 190, 0x8494);  // Left diagonal up
+    draw_line(163, 120, 230, 190, 0x8494); // Right diagonal up
+    draw_line(90, 190, 230, 190, 0x8494);  // Bottom horizontal line
+}
+
+// void draw_hourglass_frame_big()
+// {
+//     draw_line(30, 20, 290, 20, 0x8494);   // Top horizontal line
+//     draw_line(30, 20, 155, 120, 0x8494);  // Left diagonal down
+//     draw_line(290, 20, 165, 120, 0x8494); // Right diagonal down
+
+//     draw_line(155, 120, 165, 120, 0x8494); // Slight gap in middle
+
+//     draw_line(155, 120, 30, 220, 0x8494);  // Left diagonal up
+//     draw_line(165, 120, 290, 220, 0x8494); // Right diagonal up
+//     draw_line(30, 220, 290, 220, 0x8494);  // Bottom horizontal line
+// }
+
+
+void toggle_display() {
+    if (display_mode == 1) {
+        just_toggled_to_hourglass = true;
+        display_mode = 2;
+    } else if (display_mode == 2) {
+        // clear_rectangle(hourglass_erase);
+        display_mode = 1;
+    }
+}
+
+void get_hourglass_bounds(int y, int *x_left, int *x_right)
+{
+    if (y < 120)
+    { // Upper part of the hourglass
+        *x_left = 90 + ((157 - 90) * (y - 50)) / (120 - 50);
+        *x_right = 230 + ((163 - 230) * (y - 50)) / (120 - 50);
+    }
+    else
+    { // Lower part of the hourglass
+        *x_left = 157 + ((90 - 157) * (y - 120)) / (190 - 120);
+        *x_right = 163 + ((230 - 163) * (y - 120)) / (190 - 120);
+    }
+}
+
+
+void setup_hourglass()
+{
+    for (int y = 60; y < 120; y++)
+    {
+        int x_left, x_right;
+        get_hourglass_bounds(y, &x_left, &x_right);
+        draw_line(x_left, y, x_right, y, 0xF691); // Yellow sand
+    }
+    draw_hourglass_frame();
+}
+
+
+void draw_hourglass_top(int top)
+{
+    for (int y = top; y < 120; y++)
+    {
+        int x_left, x_right;
+        get_hourglass_bounds(y, &x_left, &x_right);
+        draw_line(x_left, y, x_right, y, 0xF691); // Yellow sand
+    }
+    draw_hourglass_frame();
 }
