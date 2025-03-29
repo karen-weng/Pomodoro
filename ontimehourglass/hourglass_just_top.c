@@ -84,7 +84,9 @@ volatile unsigned char byte3 = 0;
 
 // pom timer variables
 volatile int pom_start_val = 25;
-volatile int small_break_start_val = 5;
+// volatile int small_break_start_val = 5;
+volatile int small_break_start_val = 1; //TODO
+
 volatile int big_break_start_val = 15;
 volatile int sec_time = 0;
 volatile int min_time = 0;
@@ -117,8 +119,7 @@ void get_hourglass_bounds(int y, int *x_left, int *x_right);
 void setup_hourglass();
 void draw_hourglass_top(int top);
 void draw_hourglass_bottom(int top);
-
-
+void draw_hourglass_drip();
 
 void toggle_display();
 
@@ -130,10 +131,14 @@ bool just_toggled_to_hourglass = false;
 int hourglass_draw_index = 0;
 int hourglass_sec_counter = 0;
 int hourglass_sec_to_wait = 0;
-int hourglass_top_segments = 60;
 bool hourglass_new_segment = false;
 int hourglass_x_left;
 int hourglass_x_right;
+int hourglass_drip_end = 0; 
+int hourglass_drip_start = 0; 
+int drip_wait_counter = 0;
+int drip_wait_time = 170;
+
 
 volatile int *PIXEL_BUF_CTRL_ptr = (int *)PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start;      // global variable
@@ -144525,8 +144530,8 @@ int main(void)
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 
-        // *LEDR_ptr = hourglass_draw_index;
-        *LEDR_ptr = hourglass_sec_to_wait;
+        *LEDR_ptr = hourglass_draw_index;
+        // *LEDR_ptr = hourglass_sec_to_wait;
 
 
         
@@ -144567,10 +144572,9 @@ int main(void)
         }
         else if (display_mode == 2){
             clear_rectangle(hourglass_erase);
-            draw_hourglass_top(60 + hourglass_draw_index);
+            draw_hourglass_top(61 + hourglass_draw_index);
             draw_hourglass_bottom(190 - hourglass_draw_index);
-
-            
+            draw_hourglass_drip();
             draw_hourglass_frame();
 
             // if (just_toggled_to_hourglass) {
@@ -144584,6 +144588,10 @@ int main(void)
             // }
         }
     }
+
+    
+
+        
 }
 
 void wait_for_v_sync()
@@ -144785,7 +144793,7 @@ void itimer_ISR(void)
     else {
         hourglass_sec_counter = 0;
         hourglass_draw_index++;
-        hourglass_new_segment = true;
+        // hourglass_new_segment = true;
     }
     
 }
@@ -144818,6 +144826,7 @@ void audio_ISR_timer2(void)
 
     // TODO add mute variable
 
+    
     // if (!mute) {
     //     if (key_mode == 2)
     //     {
@@ -144839,7 +144848,23 @@ void audio_ISR_timer2(void)
     //         // play_audio_samples(rooster_samples, rooster_num_samples, &rooster_sample_index);
     //     }
     // }
-    
+
+    // ^ THAT IS IMPORTANT IT IS AUDIO ITS JUST COMPONENTED OUT CAUSE ITS SLOW
+
+    if (key_mode == 2) { // if counting
+        if (drip_wait_counter < drip_wait_time) {
+            drip_wait_counter++;
+        }
+        else {
+            drip_wait_counter = 0;
+            if ((hourglass_drip_end < 70) && (hourglass_draw_index < 1)) {
+                hourglass_drip_end++;
+            }
+            else if ((hourglass_draw_index >= 59) && (hourglass_drip_start < 70)) {
+                hourglass_drip_start++;
+            }
+        }
+    }
 }
 
 
@@ -145370,3 +145395,10 @@ void draw_hourglass_bottom(int apex_y)
     }
 }
 
+
+void draw_hourglass_drip()
+{
+    draw_line(160, 120 + hourglass_drip_start, 160, 120 + hourglass_drip_end, 0xF691);
+    draw_line(159, 120 + hourglass_drip_start, 159, 120 + hourglass_drip_end, 0xF691);
+    draw_line(161, 120 + hourglass_drip_start, 161, 120 + hourglass_drip_end, 0xF691);
+}
