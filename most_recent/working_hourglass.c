@@ -53,6 +53,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+// header file setup
+// #include "samples_rooster_alarm.h"  // Include the header file with the list definition
+
 #define clock_rate 100000000
 #define quarter_clock clock_rate / 4
 
