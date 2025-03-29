@@ -145292,11 +145292,21 @@ void draw_hourglass_frame()
     draw_line(90, 50, 157, 120, 0x8494);  // Left diagonal down
     draw_line(230, 50, 163, 120, 0x8494); // Right diagonal down
 
-    draw_line(157, 120, 163, 120, 0x8494); // Slight gap in middle
+    // thicker
+    draw_line(89, 50, 231, 50, 0x8494);   // Top horizontal line
+    draw_line(89, 50, 156, 120, 0x8494);  // Left diagonal down
+    draw_line(231, 50, 164, 120, 0x8494); // Right diagonal down
+
+    // draw_line(157, 120, 163, 120, 0x8494); // Slight gap in middle
 
     draw_line(157, 120, 90, 190, 0x8494);  // Left diagonal up
     draw_line(163, 120, 230, 190, 0x8494); // Right diagonal up
     draw_line(90, 190, 230, 190, 0x8494);  // Bottom horizontal line
+
+    //thicker
+    draw_line(156, 120, 89, 190, 0x8494);  // Left diagonal up
+    draw_line(164, 120, 231, 190, 0x8494); // Right diagonal up
+    draw_line(89, 190, 231, 190, 0x8494);  // Bottom horizontal line
 }
 
 // void draw_hourglass_frame_big()
