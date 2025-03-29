@@ -123,21 +123,21 @@ void draw_hourglass_drip();
 
 void toggle_display();
 
+void reset_start_time(int start_time);
+
 
 int hourglass_erase[] = {90, 50, 230, 190}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
 
 int display_mode = 1; // 1 for loading bar, 2 for hourglass
-bool just_toggled_to_hourglass = false;
 int hourglass_draw_index = 0;
 int hourglass_sec_counter = 0;
 int hourglass_sec_to_wait = 0;
-bool hourglass_new_segment = false;
 int hourglass_x_left;
 int hourglass_x_right;
 int hourglass_drip_end = 0; 
 int hourglass_drip_start = 0; 
 int drip_wait_counter = 0;
-int drip_wait_time = 170;
+int drip_wait_time = 150;
 
 
 volatile int *PIXEL_BUF_CTRL_ptr = (int *)PIXEL_BUF_CTRL_BASE;
@@ -144576,16 +144576,6 @@ int main(void)
             draw_hourglass_bottom(190 - hourglass_draw_index);
             draw_hourglass_drip();
             draw_hourglass_frame();
-
-            // if (just_toggled_to_hourglass) {
-            //     just_toggled_to_hourglass = false;
-            //     clear_rectangle(hourglass_erase);
-            //     setup_hourglass();
-            // } 
-            // if (hourglass_new_segment) {
-            //     get_hourglass_bounds(60 + hourglass_draw_index, &hourglass_x_left, &hourglass_x_right);
-            //     draw_line(hourglass_x_left, 60 + hourglass_draw_index, hourglass_x_right, 60 + hourglass_draw_index, 0x0); // erase sand
-            // }
         }
     }
 
@@ -144857,7 +144847,7 @@ void audio_ISR_timer2(void)
         }
         else {
             drip_wait_counter = 0;
-            if ((hourglass_drip_end < 70) && (hourglass_draw_index < 1)) {
+            if ((hourglass_drip_end < 70) && (hourglass_draw_index <= 1)) {
                 hourglass_drip_end++;
             }
             else if ((hourglass_draw_index >= 59) && (hourglass_drip_start < 70)) {
@@ -145134,20 +145124,19 @@ void pressed_enter(void)
         study_mode = !study_mode;
         if (study_mode)
         {
-            min_time = pom_start_val;
-            hourglass_sec_to_wait = pom_start_val;
+            reset_start_time(pom_start_val);
             
             study_session_count++;
         }
         else if (!study_mode && study_session_count % 4 != 0)
         {
-            min_time = small_break_start_val;
-            hourglass_sec_to_wait = small_break_start_val;
+            reset_start_time(small_break_start_val);
+
         }
         else if (!study_mode)
         {
-            min_time = big_break_start_val;
-            hourglass_sec_to_wait = big_break_start_val;
+            reset_start_time(big_break_start_val);
+
         }
         else
         {
@@ -145169,19 +145158,19 @@ void pressed_tab(void)
     sec_time = 0;
     if (study_mode)
     {
-        min_time = pom_start_val;
-        hourglass_sec_to_wait = pom_start_val;
+        reset_start_time(pom_start_val);
+
         study_session_count++;
     }
     else if (!study_mode && study_session_count % 4 != 0)
     {
-        min_time = small_break_start_val;
-        hourglass_sec_to_wait = small_break_start_val;
+        reset_start_time(small_break_start_val);
+
     }
     else if (!study_mode)
     {
-        min_time = big_break_start_val;
-        hourglass_sec_to_wait = big_break_start_val;
+        reset_start_time(big_break_start_val);
+
     }
     else
     {
@@ -145196,20 +145185,17 @@ void pressed_up(void)
         if (study_mode && min_time == pom_start_val)
         {
             pom_start_val++;
-            min_time = pom_start_val;
-            hourglass_sec_to_wait = pom_start_val;
+            reset_start_time(pom_start_val);
         }
         else if (!study_mode && min_time == small_break_start_val && study_session_count % 4 != 0)
         {
             small_break_start_val++;
-            min_time = small_break_start_val;
-            hourglass_sec_to_wait = small_break_start_val;
+            reset_start_time(small_break_start_val);
         }
         else if (!study_mode && min_time == big_break_start_val)
         {
             big_break_start_val++;
-            min_time = big_break_start_val;
-            hourglass_sec_to_wait = big_break_start_val;
+            reset_start_time(big_break_start_val);
         } // else user already started timer once, needs to skip/finish current session
     }
 }
@@ -145221,20 +145207,17 @@ void pressed_down(void)
         if (study_mode && min_time == pom_start_val)
         {
             pom_start_val--;
-            min_time = pom_start_val;
-            hourglass_sec_to_wait = pom_start_val;
+            reset_start_time(pom_start_val);
         }
         else if (!study_mode && min_time == small_break_start_val && study_session_count % 4 != 0)
         {
             small_break_start_val--;
-            min_time = small_break_start_val;
-            hourglass_sec_to_wait = small_break_start_val;
+            reset_start_time(small_break_start_val);
         }
         else if (!study_mode && min_time == big_break_start_val)
         {
             big_break_start_val--;
-            min_time = big_break_start_val;
-            hourglass_sec_to_wait = big_break_start_val;
+            reset_start_time(big_break_start_val);
         }
     }
 }
@@ -145325,7 +145308,6 @@ void draw_hourglass_frame()
 
 void toggle_display() {
     if (display_mode == 1) {
-        just_toggled_to_hourglass = true;
         display_mode = 2;
     } else if (display_mode == 2) {
         // clear_rectangle(hourglass_erase);
@@ -145411,4 +145393,14 @@ void draw_hourglass_drip()
     draw_line(160, 120 + hourglass_drip_start, 160, 120 + hourglass_drip_end, 0xF691);
     draw_line(159, 120 + hourglass_drip_start, 159, 120 + hourglass_drip_end, 0xF691);
     draw_line(161, 120 + hourglass_drip_start, 161, 120 + hourglass_drip_end, 0xF691);
+}
+
+
+void reset_start_time(int start_time)
+{
+    min_time = start_time;
+    hourglass_sec_to_wait = start_time;
+    hourglass_draw_index = 0;
+    hourglass_drip_start = 0;
+    hourglass_drip_end = 0;
 }
