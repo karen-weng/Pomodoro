@@ -115,6 +115,8 @@ void draw_hourglass_frame();
 // void draw_hourglass_frame_big();
 void get_hourglass_bounds(int y, int *x_left, int *x_right);
 void setup_hourglass();
+void draw_hourglass_top(int top);
+
 
 void toggle_display();
 
@@ -144496,7 +144498,7 @@ int main(void)
     __asm__ volatile("csrs mstatus, %0" ::"r"(mstatus_value));
 
     min_time = pom_start_val;
-    hourglass_sec_to_wait = min_time;
+    hourglass_sec_to_wait = pom_start_val;
 
     
 
@@ -144515,12 +144517,13 @@ int main(void)
     int sec_digits[2];
     while (1)
     {
+        
         hex_to_dec(min_time, min_digits);
         hex_to_dec(sec_time, sec_digits);
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 
-        *LEDR_ptr = display_mode;
+        *LEDR_ptr = hourglass_draw_index;
 
 
         if (display_mode == 1) {
@@ -144555,7 +144558,6 @@ int main(void)
             display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 1.4, white, sec_digits[1]);
             display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
             
-            *LEDR_ptr = 0;
         }
         else if (display_mode == 2){
             clear_rectangle(hourglass_erase);
@@ -144767,10 +144769,11 @@ void itimer_ISR(void)
         key_mode = 3;
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
     }
-    if (hourglass_sec_counter < hourglass_sec_to_wait) {
+
+    if (hourglass_sec_counter < hourglass_sec_to_wait-1) {
         hourglass_sec_counter++;
     }
-    else if (hourglass_sec_counter >= hourglass_sec_to_wait) {
+    else {
         hourglass_sec_counter = 0;
         hourglass_draw_index++;
         hourglass_new_segment = true;
