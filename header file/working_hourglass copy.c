@@ -60174,7 +60174,6 @@ int dot2[] = {159, 100, 160, 101};
 //     0xfeff0000,
 //     0xf9fafcfd,
 //     0xf4f5f6f7};
-// int background_num_samples = 60010;
 // // bottom study
 
 // // top pause
@@ -144458,7 +144457,6 @@ int dot2[] = {159, 100, 160, 101};
 //     0xffffffff,
 //     0x00ffffff
 // };
-int rooster_num_samples = 28961;
 // rooster bottom
 
 // keyboard click top
@@ -144828,7 +144826,7 @@ void audio_ISR_timer2(void)
         {
             if (study_mode == true)
             { // studying
-                play_audio_samples(background_samples, background_num_samples, &background_sample_index);
+                play_audio_samples(background_samples, background_num_samples, &background_index);
 
             } // if counting
             // else
