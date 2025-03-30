@@ -58,7 +58,7 @@
 #include "samples_guitar_30sec.h"
 #include "samples_fluffing_duck_30sec_44100.h"
 #include "samples_boo_44100.h"
-#include "samples_keyboard_click_44100.h"
+#include "samples_keyboard_click_louder_44100.h"
 
 
 #define clock_rate 100000000
@@ -558,7 +558,7 @@ void audio_ISR_timer2(void)
         // }
 
         if (keyboard_pressed) {
-            play_audio_samples_no_loop(keyboard_click_44100_samples, keyboard_click_44100_num_samples, &keyboard_click_44100_index, &keyboard_pressed);
+            play_audio_samples_no_loop(keyboard_click_louder_44100_samples, keyboard_click_louder_44100_num_samples, &keyboard_click_louder_44100_index, &keyboard_pressed);
         }
 
         else if (key_mode == 2)
