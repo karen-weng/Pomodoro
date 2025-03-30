@@ -551,12 +551,12 @@ void audio_ISR_timer2(void)
 
     if (!mute)
     {
-        if (boo_pressed)
-        {
-            play_audio_samples_no_loop(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, &boo_pressed);
-        }
+        // if (boo_pressed)
+        // {
+        //     play_audio_samples_no_loop(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, &boo_pressed);
+        // }
 
-        else if (keyboard_pressed) {
+        if (keyboard_pressed) {
             play_audio_samples_no_loop(keyboard_click_44100_samples, keyboard_click_44100_num_samples, &keyboard_click_44100_index, &keyboard_pressed);
         }
 
