@@ -940,43 +940,46 @@ void pressed_down(void)
 
 void change_edit_status(int num) {
     // if edit mode is zero, not editing, 1 for tens, 2 for ones
-    if (num==-2) {
-        edit_mode = 0;
-        if (min_time==0) {
-            if (colour==red) {
-                min_time = 25;
-                pom_start_val = min_time;
-            } else if (colour==teal) {
-                min_time = 5;
-                small_break_start_val = min_time;
-            } else {
-                min_time = 15;
-                big_break_start_val = min_time;
-            }
-        }
-    } else if (num==-1) {
-        edit_mode = 1;
+    int start;
+    if (colour==red) {
+        start = pom_start_val;
+    } else if (colour==teal) {
+        start = small_break_start_val;
     } else {
-        if (edit_mode==1) {
-            edit_mode = 2;
-            if (num==10) {
-                edit_mode = 1;
-                num = 0;
+        start = big_break_start_val;
+    }
+    if (key_mode==1 && min_time==start) {
+        if (num==-2) {      // stop editing
+            edit_mode = 0;
+            if (min_time==0) {  // if incorrect input of no minutes, set to default
+                if (colour==red) {
+                    min_time = 25;
+                    pom_start_val = min_time;
+                } else if (colour==teal) {
+                    min_time = 5;
+                    small_break_start_val = min_time;
+                } else {
+                    min_time = 15;
+                    big_break_start_val = min_time;
+                }
             }
-            min_time = num*10+min_time%10;
-            if (colour==red) {
-                pom_start_val = min_time;
-            } else if (colour==teal) {
-                small_break_start_val = min_time;
-            } else {
-                big_break_start_val = min_time;
-            }
-        } else if (edit_mode==2) {
+        } else if (num==-1) {   // start editing
             edit_mode = 1;
-            if (num==10) {
-                num = 0;
+        } else {
+            if (edit_mode==1) {
+                edit_mode = 2;
+                if (num==10) {
+                    edit_mode = 1;
+                    num = 0;
+                }
+                min_time = num*10+min_time%10;
+            } else if (edit_mode==2) {
+                edit_mode = 1;
+                if (num==10) {
+                    num = 0;
+                }
+                min_time = (min_time - min_time%10) + num;
             }
-            min_time = (min_time - min_time%10) + num;
             if (colour==red) {
                 pom_start_val = min_time;
             } else if (colour==teal) {
