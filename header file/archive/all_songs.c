@@ -542,7 +542,7 @@ void audio_ISR_timer2(void)
         else if (key_mode == 3)
         { // alarm
             // rooster
-            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
+            // play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
         }
     }
 
