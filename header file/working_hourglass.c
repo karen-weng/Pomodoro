@@ -533,7 +533,7 @@ void audio_ISR_timer2(void)
             play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index);
         }
         else if (key_mode == 3) { // alarm
-            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_sample_index);
+            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
         }
     }
 
