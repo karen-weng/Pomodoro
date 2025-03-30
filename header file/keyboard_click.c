@@ -174,7 +174,7 @@ bool mute = false;
 // most of these are imported through headers
 
 // audio functions
-void play_audio_samples(int *samples, int samples_n, int *sample_index);
+void play_audio_samples(int *samples, int samples_n, int *sample_index, bool loop);
 
 
 struct audio_t
@@ -491,24 +491,43 @@ void itimer_ISR(void)
     }
 }
 
-void play_audio_samples(int *samples, int samples_n, int *sample_index)
+void play_audio_samples(int *samples, int samples_n, int *sample_index, bool loop)
 {
-    if (*sample_index < samples_n)
-    {
-        if (AUDIO_ptr->warc > 0)
+    if (loop) {
+        if (*sample_index < samples_n)
         {
-            int scaled_sample = (int)(samples[*sample_index] * volume_factor);
+            if (AUDIO_ptr->warc > 0)
+            {
+                int scaled_sample = (int)(samples[*sample_index] * volume_factor);
 
-            AUDIO_ptr->ldata = scaled_sample;
-            AUDIO_ptr->rdata = scaled_sample;
+                AUDIO_ptr->ldata = scaled_sample;
+                AUDIO_ptr->rdata = scaled_sample;
 
-            (*sample_index)++;
+                (*sample_index)++;
+            }
+        }
+        else
+        {
+            *sample_index = 0; // Loop back if end is reached
         }
     }
-    else
-    {
-        *sample_index = 0; // Loop back if end is reached
+
+    else{
+        if (*sample_index < samples_n)
+        {
+            if (AUDIO_ptr->warc > 0)
+            {
+                int scaled_sample = (int)(samples[*sample_index] * volume_factor);
+
+                AUDIO_ptr->ldata = scaled_sample;
+                AUDIO_ptr->rdata = scaled_sample;
+
+                (*sample_index)++;
+            }
+        }
     }
+    
+    
 }
 
 // audio ISR, techcially timer
@@ -525,24 +544,24 @@ void audio_ISR_timer2(void)
         {
             if (study_mode == true)
             { // studying
-                play_audio_samples(background_samples, background_num_samples, &background_index);
+                play_audio_samples(background_samples, background_num_samples, &background_index, true);
 
             } // if counting
-            else // break mode
+            else if (!paused) // break mode
             {
                 // fluffing duck
-                play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
+                play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index, true);
             }
         }
-        else if (paused == true) // when paused
+        else if ((key_mode == 1) && (paused == true)) // when not counting and paused
         {
             // boo
-            play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index);
+            play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, false);
         }
         else if (key_mode == 3)
         { // alarm
             // rooster
-            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
+            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index, true);
         }
     }
 
@@ -825,13 +844,13 @@ void pressed_enter(void)
         *(TIMER_ptr + 0x1) = 0x7; // 0b0111 (start, cont, ito)
         // *(TIMER_AUDIO_ptr + 0x1) = 0x7;
         key_mode = 2;
-        paused = false;
+        paused = true;
     }
     else if (key_mode == 2)
     {                             // pause
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
         key_mode = 1;
-        paused = true;
+        paused = false;
         boo_44100_index = 0; // reset boo sound
     }
     else if (key_mode == 3)
@@ -1111,3 +1130,5 @@ void reset_start_time(int start_time)
     hourglass_drip_start = 0;
     hourglass_drip_end = 0;
 }
+
+
