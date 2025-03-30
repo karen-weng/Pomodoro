@@ -109,6 +109,7 @@ void clear_rectangle(int[], short int);
 
 // vga timer functions
 void display_num(int, int, short int, int);
+void erase_num(int, int);
 void hex_to_dec(int, int *);
 void draw_line(int, int, int, int, short int);
 void draw_rectangle(int[], short int);
@@ -127,8 +128,8 @@ void toggle_display();
 
 void reset_start_time(int start_time);
 
-
-int hourglass_erase[] = {89, 50, 231, 191}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+int hourglass_erase[] = {89, 0, 232, 191}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+// int hourglass_erase[] = {89, 50, 231, 191}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
 
 int display_mode = 1; // 1 for loading bar, 2 for hourglass
 int hourglass_draw_index = 0;
@@ -164,6 +165,8 @@ int loading2[] = {101, 131, 219, 149};
 int area_to_erase[] = {100, 74, 220, 150}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
 int dot1[] = {159, 90, 160, 91};
 int dot2[] = {159, 100, 160, 101};
+int dot3[] = {159, 25, 160, 26};
+int dot4[] = {159, 35, 160, 36};
 
 // // audio variables
 
@@ -144539,7 +144542,7 @@ int main(void) {
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 
-        *LEDR_ptr = hourglass_draw_index;
+        *LEDR_ptr = display_mode;
         // *LEDR_ptr = hourglass_sec_to_wait;
 
         if (display_mode == 1) {
@@ -144560,7 +144563,6 @@ int main(void) {
                 int num = (loading2[2] - loading2[0]) * (tot - min_time * 60 - sec_time) / tot + loading2[0];
                 draw_line(loading2[0], i, num, i, white);
             }
-
             display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
             draw_rectangle(dot1, white);
@@ -144574,7 +144576,14 @@ int main(void) {
             draw_hourglass_bottom(190 - hourglass_draw_index);
             draw_hourglass_drip();
             draw_hourglass_frame();
+            display_num(loading1[0], loading1[1] - num_l * 3, white, min_digits[1]);
+            display_num(loading1[0] + num_w, loading1[1] - num_l * 3, white, min_digits[0]);
+            draw_rectangle(dot3, white);
+            draw_rectangle(dot4, white);
+            display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 3, white, sec_digits[1]);
+            display_num(loading1[2] - num_w, loading1[1] - num_l * 3, white, sec_digits[0]);
         }
+
     }
         
 }
@@ -144654,7 +144663,7 @@ void clear_rectangle(int coords[], short int c) {
             plot_pixel(x, y, c);
 }
 
-void display_num(int x, int y, short int line_color, int num) {
+void erase_num(int x, int y) {
     // erase
     for (int r=y+2; r<y+4; r++)         // seg 0
     for (int c=x+8; c<x+num_w-8; c++)
@@ -144677,6 +144686,10 @@ void display_num(int x, int y, short int line_color, int num) {
     for (int r=y+19; r<y+21; r++)       // seg 6
     for (int c=x+8; c<x+num_w-8; c++)
         plot_pixel(c, r, colour);
+}
+
+void display_num(int x, int y, short int line_color, int num) {
+    erase_num(x, y);
     // draw
     if (num!=1 && num!=4) { // seg 0: 0 2 3 5 6 7 8 9
         for (int r=y+2; r<y+4; r++)
@@ -145284,10 +145297,15 @@ void draw_hourglass_frame()
 
 
 void toggle_display() {
+    wait_for_v_sync();
+    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+    clear_screen(colour);
+    wait_for_v_sync();
+    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+    clear_screen(colour);
     if (display_mode == 1) {
         display_mode = 2;
     } else if (display_mode == 2) {
-        // clear_rectangle(hourglass_erase);
         display_mode = 1;
     }
 }
@@ -145387,4 +145405,10 @@ void reset_start_time(int start_time)
     } else {
         colour = navy;
     }
+    wait_for_v_sync();
+    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+    clear_screen(colour);
+    wait_for_v_sync();
+    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+    clear_screen(colour);
 }
