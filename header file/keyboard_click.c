@@ -171,10 +171,13 @@ int dot2[] = {159, 100, 160, 101};
 // audio variables
 double volume_factor = 0.5;
 bool mute = false;
+bool boo_pressed = false;
 // most of these are imported through headers
 
 // audio functions
-void play_audio_samples(int *samples, int samples_n, int *sample_index, bool loop);
+void play_audio_samples(int *samples, int samples_n, int *sample_index);
+void play_audio_samples_no_loop(int *samples, int samples_n, int *sample_index, bool *play_audio);
+
 
 
 struct audio_t
@@ -491,44 +494,48 @@ void itimer_ISR(void)
     }
 }
 
-void play_audio_samples(int *samples, int samples_n, int *sample_index, bool loop)
+void play_audio_samples(int *samples, int samples_n, int *sample_index)
 {
-    if (loop) {
-        if (*sample_index < samples_n)
+    if (*sample_index < samples_n)
+    {
+        if (AUDIO_ptr->warc > 0)
         {
-            if (AUDIO_ptr->warc > 0)
-            {
-                int scaled_sample = (int)(samples[*sample_index] * volume_factor);
+            int scaled_sample = (int)(samples[*sample_index] * volume_factor);
 
-                AUDIO_ptr->ldata = scaled_sample;
-                AUDIO_ptr->rdata = scaled_sample;
+            AUDIO_ptr->ldata = scaled_sample;
+            AUDIO_ptr->rdata = scaled_sample;
 
-                (*sample_index)++;
-            }
-        }
-        else
-        {
-            *sample_index = 0; // Loop back if end is reached
+            (*sample_index)++;
         }
     }
-
-    else{
-        if (*sample_index < samples_n)
-        {
-            if (AUDIO_ptr->warc > 0)
-            {
-                int scaled_sample = (int)(samples[*sample_index] * volume_factor);
-
-                AUDIO_ptr->ldata = scaled_sample;
-                AUDIO_ptr->rdata = scaled_sample;
-
-                (*sample_index)++;
-            }
-        }
+    else
+    {
+        *sample_index = 0; // Loop back if end is reached
     }
-    
-    
+
 }
+
+
+void play_audio_samples_no_loop(int *samples, int samples_n, int *sample_index, bool *play_audio)
+{
+    if (*sample_index < samples_n)
+    {
+        if (AUDIO_ptr->warc > 0)
+        {
+            int scaled_sample = (int)(samples[*sample_index] * volume_factor);
+
+            AUDIO_ptr->ldata = scaled_sample;
+            AUDIO_ptr->rdata = scaled_sample;
+
+            (*sample_index)++;
+            if (sample_index >= samples_n)
+            {
+                play_audio = false; // Stop playing audio
+            }
+        }
+    }
+}
+
 
 // audio ISR, techcially timer
 void audio_ISR_timer2(void)
@@ -544,25 +551,33 @@ void audio_ISR_timer2(void)
         {
             if (study_mode == true)
             { // studying
-                play_audio_samples(background_samples, background_num_samples, &background_index, true);
+                play_audio_samples(background_samples, background_num_samples, &background_index);
 
             } // if counting
             else if (!paused) // break mode
             {
                 // fluffing duck
-                play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index, true);
+                play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
             }
         }
-        else if ((key_mode == 1) && (paused == true)) // when not counting and paused
-        {
-            // boo
-            play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, false);
-        }
+        // else if ((key_mode == 1) && (paused == true)) // when not counting and paused
+        // {
+        //     // boo
+        //     // pick a different audio sample
+        //     // play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, false);
+        // }
         else if (key_mode == 3)
         { // alarm
             // rooster
-            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index, true);
+            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
         }
+
+        if (boo_pressed)
+        {
+            play_audio_samples_no_loop(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, &boo_pressed);
+        }
+
+        // boo if skip studying
     }
 
     // ^ THAT IS IMPORTANT IT IS AUDIO ITS JUST COMPONENTED OUT CAUSE ITS SLOW
@@ -844,14 +859,14 @@ void pressed_enter(void)
         *(TIMER_ptr + 0x1) = 0x7; // 0b0111 (start, cont, ito)
         // *(TIMER_AUDIO_ptr + 0x1) = 0x7;
         key_mode = 2;
-        paused = true;
+        paused = false;
     }
     else if (key_mode == 2)
     {                             // pause
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
         key_mode = 1;
-        paused = false;
-        boo_44100_index = 0; // reset boo sound
+        paused = true;
+        // boo_44100_index = 0; // reset boo sound
     }
     else if (key_mode == 3)
     { // update next countdown start value
@@ -875,6 +890,7 @@ void pressed_enter(void)
             printf("Unexpected study mode %d.", study_mode);
         }
         key_mode = 1;
+        paused = false;
     }
     else
     {
@@ -886,7 +902,12 @@ void pressed_tab(void)
 { // skip
     *(TIMER_ptr + 0x1) = 0xB;
     key_mode = 1; // auto-set to start // not counting
+    if (study_mode) {
+        boo_pressed = true;
+        boo_44100_index = 0;
+    }
     study_mode = !study_mode;
+    
     sec_time = 0;
     if (study_mode)
     {
