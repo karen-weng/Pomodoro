@@ -532,7 +532,7 @@ void play_audio_samples_no_loop(int *samples, int samples_n, int *sample_index, 
             AUDIO_ptr->rdata = scaled_sample;
 
             (*sample_index)++;
-            if (sample_index >= samples_n)
+            if (*sample_index >= samples_n)
             {
                 *play_audio = false; // Stop playing audio
             }
