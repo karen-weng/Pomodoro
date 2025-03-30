@@ -622,16 +622,16 @@ void KEY_ISR(void) {
         } else {
             printf("Unexpected study mode %d.", study_mode);
         }
-        // wait_for_v_sync();
-        // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        // clear_screen(black);
-        // draw_rectangle(dot1, white);
-        // draw_rectangle(dot2, white);
-        // wait_for_v_sync();
-        // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        // clear_screen(black);
-        // draw_rectangle(dot1, white);
-        // draw_rectangle(dot2, white);
+        wait_for_v_sync();
+        pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        clear_screen(black);
+        draw_rectangle(dot1, white);
+        draw_rectangle(dot2, white);
+        wait_for_v_sync();
+        pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
+        clear_screen(black);
+        draw_rectangle(dot1, white);
+        draw_rectangle(dot2, white);
     // for increasing & decreasing start value, check mode & if haven't ever pressed start
     } else if (pressed_key==4 && key_mode==1 && min_time<99) { // increase start value
         if (study_mode && min_time==pom_start_val) {
