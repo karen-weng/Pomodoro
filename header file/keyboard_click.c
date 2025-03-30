@@ -535,6 +535,7 @@ void play_audio_samples_no_loop(int *samples, int samples_n, int *sample_index, 
             if (*sample_index >= samples_n)
             {
                 *play_audio = false; // Stop playing audio
+                *sample_index = 0;
             }
         }
     }
