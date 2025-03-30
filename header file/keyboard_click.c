@@ -593,6 +593,7 @@ void audio_ISR_timer2(void)
             else if (alarm_mode == 2)
             {
                 // school bell
+                // TODO school bell louder, beep beep louder
                 play_audio_samples(school_bell_44100_samples, school_bell_44100_num_samples, &school_bell_44100_index);
             }
             else if (alarm_mode == 3)
