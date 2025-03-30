@@ -105,7 +105,7 @@ volatile int *KEY_ptr = (int *)KEY_BASE;
 // vga functions
 void plot_pixel(int, int, short int); // plots one pixel
 void clear_screen(short int);         // clear whole screen
-void clear_rectangle(int[], short int);
+void clear_rectangle(int, int, int, int, short int);
 
 // vga timer functions
 void display_num(int, int, short int, int);
@@ -164,6 +164,7 @@ int num_l = 40;
 int loading1[] = {100, 130, 220, 150};
 int loading2[] = {101, 131, 219, 149};
 int area_to_erase[] = {100, 74, 220, 150}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+int num_coords[] = {132,80,200,120};
 int dot1[] = {159, 90, 160, 91};
 int dot2[] = {159, 100, 160, 101};
 int dot3[] = {159, 25, 160, 26};
@@ -236,6 +237,7 @@ int main(void) {
     draw_rectangle(dot2, white);
     int min_digits[2];
     int sec_digits[2];
+    int x0, y0, x1, y1;
 
     while (1) {
         hex_to_dec(min_time, min_digits);
@@ -244,7 +246,7 @@ int main(void) {
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 
         *LEDR_ptr = edit_mode;
-        // *LEDR_ptr = hourglass_sec_to_wait;
+        // clear_rectangle(num_coords, colour);
         clear_screen(colour);
         if (display_mode == 1) {
             
@@ -264,6 +266,32 @@ int main(void) {
                 }
                 int num = (loading2[2] - loading2[0]) * (tot - min_time * 60 - sec_time) / tot + loading2[0];
                 draw_line(loading2[0], i, num, i, white);
+            }
+            display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
+            display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
+            draw_rectangle(dot1, white);
+            draw_rectangle(dot2, white);
+            display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 1.4, white, sec_digits[1]);
+            display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
+            if (edit_mode==1) { // editing minutes 'ten's
+                x0 = loading1[0];
+                y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0]+num_w;
+                y1 = loading1[1]-num_l*1.4+num_l;  
+            } else if (edit_mode==2) { // editing minutes 'one's
+                x0 = loading1[0]+num_w;
+                y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0]+num_w+num_w;
+                y1 = loading1[1]-num_l*1.4+num_l;
+            }
+            if (edit_mode!=0) {
+                if (colour==red) {
+                    clear_rectangle(x0, y0, x1, y1, dark_red);
+                } else if (colour==teal) {
+                    clear_rectangle(x0, y0, x1, y1, dark_teal);
+                } else {
+                    clear_rectangle(x0, y0, x1, y1, dark_navy);
+                }
             }
             display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
@@ -308,12 +336,10 @@ void draw_line(int x0, int y0, int x1, int y1, short int colour) {
     if (x0 == x1) {
         for (int r = y0; r <= y1; r++)
             plot_pixel(x0, r, colour);
-    }
-    else if (y0 == y1) {
+    } else if (y0 == y1) {
         for (int c = x0; c <= x1; c++)
             plot_pixel(c, y0, colour);
-    }
-    else {
+    } else {
         bool is_steep = abs(y1 - y0) > abs(x1 - x0);
         if (is_steep) {
             int temp = x0;
@@ -355,13 +381,12 @@ void draw_rectangle(int coords[], short int colour) {                           
 }
 
 void clear_screen(short int c) {
-    int coords[] = {0, 0, 320, 240};
-    clear_rectangle(coords, c);
+    clear_rectangle(0, 0, 320, 240, c);
 }
 
-void clear_rectangle(int coords[], short int c) {
-    for (int x = coords[0]; x < coords[2]; x++)
-        for (int y = coords[1]; y < coords[3]; y++)
+void clear_rectangle(int x0, int y0, int x1, int y1, short int c) {
+    for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++)
             plot_pixel(x, y, c);
 }
 
@@ -765,13 +790,12 @@ void PS2_ISR(void)
             // 0x5A, 0x0D, 0x29, 0x66
             case 0x5A:
                 // led_display_val = 512;
-                if (edit_mode!=0) {
-                    change_edit_status(-2);
-                }
+                change_edit_status(-2);     // exit edit mode
                 pressed_enter();
                 break; // enter
             case 0x0D:
                 // led_display_val = 512;
+                change_edit_status(-2);     // exit edit mode
                 pressed_tab();
                 break; // tab
             case 0x29:
@@ -779,6 +803,7 @@ void PS2_ISR(void)
                 break; // space
             case 0x66:
                 // led_display_val = 256;
+                change_edit_status(10);
                 break; // backspace
             }
         }
@@ -933,6 +958,11 @@ void change_edit_status(int num) {
         edit_mode = 1;
     } else {
         if (edit_mode==1) {
+            edit_mode = 2;
+            if (num==10) {
+                edit_mode = 1;
+                num = 0;
+            }
             min_time = num*10+min_time%10;
             if (colour==red) {
                 pom_start_val = min_time;
@@ -941,8 +971,11 @@ void change_edit_status(int num) {
             } else {
                 big_break_start_val = min_time;
             }
-            edit_mode = 2;
         } else if (edit_mode==2) {
+            edit_mode = 1;
+            if (num==10) {
+                num = 0;
+            }
             min_time = (min_time - min_time%10) + num;
             if (colour==red) {
                 pom_start_val = min_time;
@@ -951,7 +984,6 @@ void change_edit_status(int num) {
             } else {
                 big_break_start_val = min_time;
             }
-            edit_mode = 1;
         }
     }
 }
