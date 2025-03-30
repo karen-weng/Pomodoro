@@ -56,7 +56,7 @@
 // header file setup
 #include "samples_rooster_alarm.h"  // Include the header file with the list definition
 #include "samples_guitar_30sec.h"
-#include "fluffing_duck_30sec_44100.h"
+#include "samples_fluffing_duck_30sec_44100.h"
 
 #define clock_rate 100000000
 #define quarter_clock clock_rate / 4
