@@ -528,7 +528,7 @@ void audio_ISR_timer2(void)
                 play_audio_samples(background_samples, background_num_samples, &background_index);
 
             } // if counting
-            else if (!paused) // break mode
+            else //if (!paused) // break mode
             {
                 // fluffing duck
                 play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
@@ -825,13 +825,13 @@ void pressed_enter(void)
         *(TIMER_ptr + 0x1) = 0x7; // 0b0111 (start, cont, ito)
         // *(TIMER_AUDIO_ptr + 0x1) = 0x7;
         key_mode = 2;
-        paused = false;
+        paused = true;
     }
     else if (key_mode == 2)
     {                             // pause
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
         key_mode = 1;
-        paused = true;
+        paused = false;
         boo_44100_index = 0; // reset boo sound
     }
     else if (key_mode == 3)
