@@ -1,5 +1,5 @@
 #ifndef SAMPLES_BOO_44100_H  // If LIST_H is not defined...
-#define SAMPLES_boo_44100_H  // ...define LIST_H
+#define SAMPLES_BOO_44100_H  // ...define LIST_H
 
 int boo_44100_index = 0;
 int boo_44100_samples[] = {

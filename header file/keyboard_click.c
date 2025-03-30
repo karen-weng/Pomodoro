@@ -59,7 +59,8 @@
 #include "samples_fluffing_duck_30sec_44100.h"
 #include "samples_boo_44100.h"
 #include "samples_keyboard_click_louder_44100.h"
-
+#include "samples_beep_beep_44100.h"
+#include "samples_school_bell_44100.h"
 
 #define clock_rate 100000000
 #define quarter_clock clock_rate / 4
@@ -175,12 +176,14 @@ double volume_factor = 0.5;
 bool mute = false;
 bool boo_pressed = false;
 bool keyboard_pressed = false;
+int alarm_mode = 1; // 1 rooster, 2 school bell, 3 beep beep
 
 // most of these are imported through headers
 
 // audio functions
 void play_audio_samples(int *samples, int samples_n, int *sample_index);
 void play_audio_samples_no_loop(int *samples, int samples_n, int *sample_index, bool *play_audio);
+void reset_alarm_index();
 
 
 
@@ -583,7 +586,20 @@ void audio_ISR_timer2(void)
         else if (key_mode == 3)
         { // alarm
             // rooster
-            play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
+            if (alarm_mode == 1)
+            {
+                play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
+            }
+            else if (alarm_mode == 2)
+            {
+                // school bell
+                play_audio_samples(school_bell_44100_samples, school_bell_44100_num_samples, &school_bell_44100_index);
+            }
+            else if (alarm_mode == 3)
+            {
+                // beep beep
+                play_audio_samples(beep_beep_44100_samples, beep_beep_44100_num_samples, &beep_beep_44100_index);
+            }
         }
 
         
@@ -806,10 +822,23 @@ void PS2_ISR(void)
                 // led_display_val = 256;
                 // recording = false;
                 break; // R
+
+
+            case 0x43: // right now deosnt care if it is currently alarm or not
+                // led_display_val = 256;
+                alarm_mode = 1;
+                reset_alarm_index();
+                break; // I
+            case 0x44: // right now deosnt care if it is currently alarm or not
+                // led_display_val = 256;
+                alarm_mode = 2;
+                reset_alarm_index();
+                break; // O  
             case 0x4D: // right now deosnt care if it is currently alarm or not
                 // led_display_val = 256;
-                // play_alarm(void);
-                break; // R
+                alarm_mode = 3;
+                reset_alarm_index();
+                break; // P
 
             // function keys
             // 0x05, 0x06, 0x04
@@ -904,6 +933,10 @@ void pressed_enter(void)
         }
         key_mode = 1;
         paused = false;
+
+        // reset all audio indexes
+        // TODO make into a function
+        reset_alarm_index();
     }
     else
     {
@@ -1169,4 +1202,9 @@ void reset_start_time(int start_time)
     hourglass_drip_end = 0;
 }
 
-
+void reset_alarm_index()
+{
+    rooster_index = 0;
+    school_bell_44100_index = 0;
+    beep_beep_44100_index = 0;
+}
