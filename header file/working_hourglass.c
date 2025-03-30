@@ -100,6 +100,9 @@ volatile int key_mode = 1;       // 1 for start, 2 for pause, 3 for stop (ringin
 volatile bool study_mode = true; // true for pomodoro, false for break,
 volatile int study_session_count = 1;
 
+volatile bool paused = false; // true for pomodoro, false for break,
+
+
 volatile int *LEDR_ptr = (int *)LEDR_BASE;
 volatile int *HEX3_HEX0_ptr = (int *)HEX3_HEX0_BASE;
 volatile int *TIMER_ptr = (int *)TIMER_BASE;
@@ -528,8 +531,9 @@ void audio_ISR_timer2(void)
                 play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
             }
         }
-        else if (key_mode == 1) // when paused
+        else if ((key_mode == 1) && (pause == true)) // when paused
         {
+            // boo
             play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index);
         }
         else if (key_mode == 3) { // alarm
@@ -810,11 +814,13 @@ void pressed_enter(void)
         *(TIMER_ptr + 0x1) = 0x7; // 0b0111 (start, cont, ito)
         // *(TIMER_AUDIO_ptr + 0x1) = 0x7;
         key_mode = 2;
+        paused = false;
     }
     else if (key_mode == 2)
     {                             // pause
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
         key_mode = 1;
+        paused = true;
     }
     else if (key_mode == 3)
     { // update next countdown start value
@@ -850,7 +856,7 @@ void pressed_enter(void)
 void pressed_tab(void)
 { // skip
     *(TIMER_ptr + 0x1) = 0xB;
-    key_mode = 1; // auto-set to start
+    key_mode = 1; // auto-set to start // not counting
     study_mode = !study_mode;
     sec_time = 0;
     if (study_mode)
