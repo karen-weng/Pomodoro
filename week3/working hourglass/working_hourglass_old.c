@@ -158,6 +158,8 @@ int area_to_erase[] = {100, 74, 220, 150}; // UPDATE THIS IF TWEAKING DISPLAY LO
 int dot1[] = {159, 90, 160, 91};
 int dot2[] = {159, 100, 160, 101};
 
+
+
 // // audio variables
 
 // // top study
