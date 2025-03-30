@@ -57,6 +57,7 @@
 #include "samples_rooster_alarm.h"  // Include the header file with the list definition
 #include "samples_guitar_30sec.h"
 #include "samples_fluffing_duck_30sec_44100.h"
+#include "samples_boo_44100.h"
 
 #define clock_rate 100000000
 #define quarter_clock clock_rate / 4
@@ -169,13 +170,6 @@ int keyboard_click_num_samples = 617;
 
 // keyboard click bottom
 
-
-
-int background_sample_index = 0;
-int pause_sample_index = 0;
-int rooster_sample_index = 0;
-
-
 double volume_factor = 0.5;
 bool mute = false;
 
@@ -284,11 +278,7 @@ int main(void)
             draw_hourglass_drip();
             draw_hourglass_frame();
         }
-    }
-
-    
-
-        
+    }        
 }
 
 void wait_for_v_sync()
@@ -538,11 +528,11 @@ void audio_ISR_timer2(void)
                 play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
             }
         }
-        // else if (key_mode == 1)
-        // {
-        //     // play_audio_samples(pause_samples, pause_num_samples, &pause_sample_index);
-        // }
-        else if (key_mode == 3) {
+        else if (key_mode == 1) // when paused
+        {
+            play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index);
+        }
+        else if (key_mode == 3) { // alarm
             play_audio_samples(rooster_samples, rooster_num_samples, &rooster_sample_index);
         }
     }
@@ -564,8 +554,6 @@ void audio_ISR_timer2(void)
         }
     }
 }
-
-
 
 // KEY port interrupt service routine
 void KEY_ISR(void)
