@@ -58,9 +58,6 @@
 #include "samples_guitar_30sec.h"
 #include "samples_fluffing_duck_30sec_44100.h"
 #include "samples_boo_44100.h"
-#include "samples_keyboard_click_louder_44100.h"
-#include "samples_beep_beep_44100.h"
-#include "samples_school_bell_44100.h"
 
 #define clock_rate 100000000
 #define quarter_clock clock_rate / 4
@@ -174,17 +171,10 @@ int dot2[] = {159, 100, 160, 101};
 // audio variables
 double volume_factor = 0.5;
 bool mute = false;
-bool boo_pressed = false;
-bool keyboard_pressed = false;
-int alarm_mode = 1; // 1 rooster, 2 school bell, 3 beep beep
-
 // most of these are imported through headers
 
 // audio functions
 void play_audio_samples(int *samples, int samples_n, int *sample_index);
-void play_audio_samples_no_loop(int *samples, int samples_n, int *sample_index, bool *play_audio);
-void reset_alarm_index();
-
 
 
 struct audio_t
@@ -519,31 +509,7 @@ void play_audio_samples(int *samples, int samples_n, int *sample_index)
     {
         *sample_index = 0; // Loop back if end is reached
     }
-
 }
-
-
-void play_audio_samples_no_loop(int *samples, int samples_n, int *sample_index, bool *play_audio)
-{
-    if (*sample_index < samples_n)
-    {
-        if (AUDIO_ptr->warc > 0)
-        {
-            int scaled_sample = (int)(samples[*sample_index] * volume_factor);
-
-            AUDIO_ptr->ldata = scaled_sample;
-            AUDIO_ptr->rdata = scaled_sample;
-
-            (*sample_index)++;
-            if (*sample_index >= samples_n)
-            {
-                *play_audio = false; // Stop playing audio
-                *sample_index = 0;
-            }
-        }
-    }
-}
-
 
 // audio ISR, techcially timer
 void audio_ISR_timer2(void)
@@ -555,57 +521,29 @@ void audio_ISR_timer2(void)
 
     if (!mute)
     {
-        // if (boo_pressed)
-        // {
-        //     play_audio_samples_no_loop(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, &boo_pressed);
-        // }
-
-        if (keyboard_pressed) {
-            play_audio_samples_no_loop(keyboard_click_louder_44100_samples, keyboard_click_louder_44100_num_samples, &keyboard_click_louder_44100_index, &keyboard_pressed);
-        }
-
-        else if (key_mode == 2)
+        if (key_mode == 2)
         {
             if (study_mode == true)
             { // studying
                 play_audio_samples(background_samples, background_num_samples, &background_index);
 
             } // if counting
-            else if (!paused) // break mode
+            else //if (!paused) // break mode
             {
                 // fluffing duck
                 play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
             }
         }
-        // else if ((key_mode == 1) && (paused == true)) // when not counting and paused
-        // {
-        //     // boo
-        //     // pick a different audio sample
-        //     // play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, false);
-        // }
+        else if (key_mode == 1 && paused == true) // when paused
+        {
+            // boo
+            play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index);
+        }
         else if (key_mode == 3)
         { // alarm
             // rooster
-            if (alarm_mode == 1)
-            {
-                play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
-            }
-            else if (alarm_mode == 2)
-            {
-                // school bell
-                // TODO school bell louder, beep beep louder
-                play_audio_samples(school_bell_44100_samples, school_bell_44100_num_samples, &school_bell_44100_index);
-            }
-            else if (alarm_mode == 3)
-            {
-                // beep beep
-                play_audio_samples(beep_beep_44100_samples, beep_beep_44100_num_samples, &beep_beep_44100_index);
-            }
+            // play_audio_samples(rooster_samples, rooster_num_samples, &rooster_index);
         }
-
-        
-
-        // boo if skip studying
     }
 
     // ^ THAT IS IMPORTANT IT IS AUDIO ITS JUST COMPONENTED OUT CAUSE ITS SLOW
@@ -754,8 +692,6 @@ void PS2_ISR(void)
     byte2 = byte3;
     byte3 = PS2_data & 0xFF;
 
-    keyboard_pressed = true;
-
     if (byte2 == 0xF0)
     {
         if (byte1 == 0xE0)
@@ -823,23 +759,10 @@ void PS2_ISR(void)
                 // led_display_val = 256;
                 // recording = false;
                 break; // R
-
-
-            case 0x43: // right now deosnt care if it is currently alarm or not
-                // led_display_val = 256;
-                alarm_mode = 1;
-                reset_alarm_index();
-                break; // I
-            case 0x44: // right now deosnt care if it is currently alarm or not
-                // led_display_val = 256;
-                alarm_mode = 2;
-                reset_alarm_index();
-                break; // O  
             case 0x4D: // right now deosnt care if it is currently alarm or not
                 // led_display_val = 256;
-                alarm_mode = 3;
-                reset_alarm_index();
-                break; // P
+                // play_alarm(void);
+                break; // R
 
             // function keys
             // 0x05, 0x06, 0x04
@@ -902,14 +825,14 @@ void pressed_enter(void)
         *(TIMER_ptr + 0x1) = 0x7; // 0b0111 (start, cont, ito)
         // *(TIMER_AUDIO_ptr + 0x1) = 0x7;
         key_mode = 2;
-        paused = false;
+        paused = true;
     }
     else if (key_mode == 2)
     {                             // pause
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
         key_mode = 1;
-        paused = true;
-        // boo_44100_index = 0; // reset boo sound
+        paused = false;
+        boo_44100_index = 0; // reset boo sound
     }
     else if (key_mode == 3)
     { // update next countdown start value
@@ -933,11 +856,6 @@ void pressed_enter(void)
             printf("Unexpected study mode %d.", study_mode);
         }
         key_mode = 1;
-        paused = false;
-
-        // reset all audio indexes
-        // TODO make into a function
-        reset_alarm_index();
     }
     else
     {
@@ -949,16 +867,7 @@ void pressed_tab(void)
 { // skip
     *(TIMER_ptr + 0x1) = 0xB;
     key_mode = 1; // auto-set to start // not counting
-    if (study_mode) {
-        boo_pressed = true;
-        boo_44100_index = 0;
-    }
-    else {
-        boo_pressed = false;
-
-    }
     study_mode = !study_mode;
-    
     sec_time = 0;
     if (study_mode)
     {
@@ -1201,11 +1110,4 @@ void reset_start_time(int start_time)
     hourglass_draw_index = 0;
     hourglass_drip_start = 0;
     hourglass_drip_end = 0;
-}
-
-void reset_alarm_index()
-{
-    rooster_index = 0;
-    school_bell_44100_index = 0;
-    beep_beep_44100_index = 0;
 }
