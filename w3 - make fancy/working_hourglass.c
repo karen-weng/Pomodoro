@@ -125,7 +125,7 @@ void draw_hourglass_bottom(int top);
 void draw_hourglass_drip();
 
 void toggle_display();
-
+void change_edit_status(int);
 void reset_start_time(int start_time);
 
 int hourglass_erase[] = {89, 0, 232, 191}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
@@ -147,7 +147,7 @@ volatile int *PIXEL_BUF_CTRL_ptr = (int *)PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start;      // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
-volatile int colour;
+int colour;
 short int black = 0x0;
 short int white = 0xFFFF;
 short int grey = 0x8494;
@@ -157,6 +157,7 @@ short int teal = 0x5B92;
 short int dark_teal = 0x4310;
 short int navy = 0x52F3;
 short int dark_navy = 0x44D2;
+int edit_mode = 0;
 
 int num_w = 30;
 int num_l = 40;
@@ -242,7 +243,7 @@ int main(void) {
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 
-        *LEDR_ptr = display_mode;
+        *LEDR_ptr = edit_mode;
         // *LEDR_ptr = hourglass_sec_to_wait;
         clear_screen(colour);
         if (display_mode == 1) {
@@ -686,32 +687,42 @@ void PS2_ISR(void)
             // 0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46
             case 0x45:
                 // led_display_val = 0;
+                change_edit_status(0);
                 break; // 0
             case 0x16:
+                change_edit_status(1);
                 // led_display_val = 1;
                 break; // 1
             case 0x1E:
+                change_edit_status(2);
                 // led_display_val = 2;
                 break; // 2
             case 0x26:
+                change_edit_status(3);
                 // led_display_val = 3;
                 break; // 3
             case 0x25:
+                change_edit_status(4);                
                 // led_display_val = 4;
                 break; // 4
             case 0x2E:
+                change_edit_status(5);
                 // led_display_val = 5;
                 break; // 5
             case 0x36:
+                change_edit_status(6);
                 // led_display_val = 6;
                 break; // 6
             case 0x3D:
+                change_edit_status(7);
                 // led_display_val = 7;
                 break; // 7
             case 0x3E:
+                change_edit_status(8);
                 // led_display_val = 8;
                 break; // 8
             case 0x46:
+                change_edit_status(9);
                 // led_display_val = 9;
                 break; // 9
 
@@ -724,7 +735,13 @@ void PS2_ISR(void)
                 // led_display_val = 256;
                 // play_alarm(void);
                 break; // R
-
+            case 0x24:  // E
+                if (edit_mode==0) {
+                    change_edit_status(-1);
+                } else {
+                    change_edit_status(-2);
+                }
+                break;
             // function keys
             // 0x05, 0x06, 0x04
             case 0x05:
@@ -748,6 +765,9 @@ void PS2_ISR(void)
             // 0x5A, 0x0D, 0x29, 0x66
             case 0x5A:
                 // led_display_val = 512;
+                if (edit_mode!=0) {
+                    change_edit_status(-2);
+                }
                 pressed_enter();
                 break; // enter
             case 0x0D:
@@ -893,6 +913,48 @@ void pressed_down(void)
     }
 }
 
+void change_edit_status(int num) {
+    // if edit mode is zero, not editing, 1 for tens, 2 for ones
+    if (num==-2) {
+        edit_mode = 0;
+        if (min_time==0) {
+            if (colour==red) {
+                min_time = 25;
+                pom_start_val = min_time;
+            } else if (colour==teal) {
+                min_time = 5;
+                small_break_start_val = min_time;
+            } else {
+                min_time = 15;
+                big_break_start_val = min_time;
+            }
+        }
+    } else if (num==-1) {
+        edit_mode = 1;
+    } else {
+        if (edit_mode==1) {
+            min_time = num*10+min_time%10;
+            if (colour==red) {
+                pom_start_val = min_time;
+            } else if (colour==teal) {
+                small_break_start_val = min_time;
+            } else {
+                big_break_start_val = min_time;
+            }
+            edit_mode = 2;
+        } else if (edit_mode==2) {
+            min_time = (min_time - min_time%10) + num;
+            if (colour==red) {
+                pom_start_val = min_time;
+            } else if (colour==teal) {
+                small_break_start_val = min_time;
+            } else {
+                big_break_start_val = min_time;
+            }
+            edit_mode = 1;
+        }
+    }
+}
 
 // Configure the FPGA interval timer
 void set_itimer(void)
