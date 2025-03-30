@@ -267,8 +267,10 @@ int main(void) {
             display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
             draw_rectangle(dot1, white);
             draw_rectangle(dot2, white);
-            display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 1.4, white, sec_digits[1]);
-            display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
+            // display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 1.4, white, sec_digits[1]);
+            // display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
+            display_num(132, 80, white, sec_digits[1]);
+            display_num(164, 80, white, sec_digits[0]);
         }
         else if (display_mode == 2) {
             clear_rectangle(hourglass_erase, colour);
@@ -393,6 +395,42 @@ void display_num(int x, int y, short int line_color, int num) {
     // draw
     if (num!=1 && num!=4) { // seg 0: 0 2 3 5 6 7 8 9
         for (int r=y+2; r<y+4; r++)
+        for (int c=x+4; c<x+18; c++)
+        plot_pixel(c, r, line_color);
+    }
+    if (num!=5 && num!=6) { // seg 1: 0 1 2 3 4 7 8 9
+        for (int r=y+4; r<y+19; r++)
+        for (int c=x+18; c<x+20; c++)
+        plot_pixel(c, r, line_color);
+    }
+    if (num!=2) { // seg 2: 0 1 3 4 5 6 7 8 9
+        for (int r=y+21; r<y+36; r++)
+        for (int c=x+18; c<x+20; c++)
+        plot_pixel(c, r, line_color);
+    }
+    if (num!=1 && num!=4 && num!=7) { // seg 3: 0 2 3 5 6 8 9
+        for (int r=y+36; r<y+38; r++)
+        for (int c=x+4; c<x+18; c++)
+        plot_pixel(c, r, line_color);
+    }
+    if (num==0 || num==2 || num==6 || num==8) { // seg 4: 0 2 6 8
+        for (int r=y+21; r<y+36; r++)
+        for (int c=x+2; c<x+4; c++)
+        plot_pixel(c, r, line_color);
+    }
+    if (num!=1 && num!=2 && num!=3 && num!=7) { // seg 5: 0 4 5 6 8 9
+        for (int r=y+4; r<y+19; r++)
+        for (int c=x+2; c<x+4; c++)
+        plot_pixel(c, r, line_color);
+    }
+    if (num!=0 && num!=1 && num!=7) { // seg 6: 2 3 4 5 6 8 9
+        for (int r=y+19; r<y+21; r++)
+        for (int c=x+4; c<x+18; c++)
+        plot_pixel(c, r, line_color);
+    }
+    /*
+    if (num!=1 && num!=4) { // seg 0: 0 2 3 5 6 7 8 9
+        for (int r=y+2; r<y+4; r++)
         for (int c=x+8; c<x+num_w-8; c++)
         plot_pixel(c, r, line_color);
     }
@@ -426,10 +464,11 @@ void display_num(int x, int y, short int line_color, int num) {
         for (int c=x+8; c<x+num_w-8; c++)
         plot_pixel(c, r, line_color);
     }
+        */
 }
 
 void hex_to_dec(int hex_value, int digits[]) {
-    if (hex_value > 59) {
+    if (hex_value > 99) {
         printf("Invalid value: Maximum allowed is 59\n");
         return;
     }
