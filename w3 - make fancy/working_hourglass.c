@@ -145297,12 +145297,6 @@ void draw_hourglass_frame()
 
 
 void toggle_display() {
-    wait_for_v_sync();
-    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-    clear_screen(colour);
-    wait_for_v_sync();
-    pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-    clear_screen(colour);
     if (display_mode == 1) {
         display_mode = 2;
     } else if (display_mode == 2) {
