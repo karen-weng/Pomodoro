@@ -244,9 +244,10 @@ int main(void) {
 
         *LEDR_ptr = display_mode;
         // *LEDR_ptr = hourglass_sec_to_wait;
-
+        clear_screen(colour);
         if (display_mode == 1) {
-            clear_rectangle(hourglass_erase, colour); // clear hourglass from toggling
+            
+            // clear_rectangle(hourglass_erase, colour); // clear hourglass from toggling
             // clear_rectangle(area_to_erase);
             // clear_rectangle(loading1);
             draw_rectangle(loading1, white); // display loading bar;
@@ -271,7 +272,7 @@ int main(void) {
             display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
         }
         else if (display_mode == 2) {
-            clear_rectangle(hourglass_erase, colour);
+            // clear_rectangle(hourglass_erase, colour);
             draw_hourglass_top(61 + hourglass_draw_index);
             draw_hourglass_bottom(190 - hourglass_draw_index);
             draw_hourglass_drip();
