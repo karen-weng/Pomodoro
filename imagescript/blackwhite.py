@@ -1,7 +1,7 @@
 from PIL import Image
 
 # Load image
-image_name = "mute_2"
+image_name = "NOTmute"
 image_path = image_name + ".png"
 img = Image.open(image_path).convert("RGB")  # Convert to RGB format
 
@@ -20,9 +20,12 @@ bw_pixel_array = [rgb_to_bw(r, g, b) for (r, g, b) in pixels]
 # Save as a C array
 header_filename = image_name + "_bw.h"
 with open(header_filename, "w") as f:
-    f.write(f"#define IMAGE_WIDTH {width}\n")
-    f.write(f"#define IMAGE_HEIGHT {height}\n")
-    f.write("const short int image_data[] = {");
+
+
+    f.write(f"int {image_name}_width = {width};\n")
+    f.write(f"int {image_name}_height = {height};\n")
+    f.write("const short int " + image_name + "_data[] = {")
+
     f.write(", ".join(map(str, bw_pixel_array)))
     f.write("};")
 
