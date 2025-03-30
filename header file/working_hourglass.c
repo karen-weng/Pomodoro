@@ -531,7 +531,7 @@ void audio_ISR_timer2(void)
                 play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
             }
         }
-        else if ((key_mode == 1) && (pause == true)) // when paused
+        else if ((key_mode == 1) && (paused == true)) // when paused
         {
             // boo
             play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index);
