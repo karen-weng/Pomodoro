@@ -19573,8 +19573,8 @@ int boo_44100_samples[] = {
     0x00ff00ff,
     0x00ff00ff
 };
-// int boo_44100_num_samples = 19569; // real length
-int boo_44100_num_samples = 30000; // more pause
+int boo_44100_num_samples = 19569; // real length
+// int boo_44100_num_samples = 30000; // more pause
 
 
 #endif // End the include guard
