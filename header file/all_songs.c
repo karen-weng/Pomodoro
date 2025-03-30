@@ -171,6 +171,7 @@ int dot2[] = {159, 100, 160, 101};
 // audio variables
 double volume_factor = 0.5;
 bool mute = false;
+// most of these are imported through headers
 
 // audio functions
 void play_audio_samples(int *samples, int samples_n, int *sample_index);
@@ -527,13 +528,13 @@ void audio_ISR_timer2(void)
                 play_audio_samples(background_samples, background_num_samples, &background_index);
 
             } // if counting
-            else // break mode
+            else if (!paused) // break mode
             {
                 // fluffing duck
                 play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
             }
         }
-        else if (paused == true) // when paused
+        else if (key_mode == 1 && paused == true) // when paused
         {
             // boo
             play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index);
