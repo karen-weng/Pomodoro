@@ -534,7 +534,7 @@ void play_audio_samples_no_loop(int *samples, int samples_n, int *sample_index, 
             (*sample_index)++;
             if (sample_index >= samples_n)
             {
-                play_audio = false; // Stop playing audio
+                *play_audio = false; // Stop playing audio
             }
         }
     }
@@ -917,6 +917,10 @@ void pressed_tab(void)
     if (study_mode) {
         boo_pressed = true;
         boo_44100_index = 0;
+    }
+    else {
+        boo_pressed = false;
+
     }
     study_mode = !study_mode;
     
