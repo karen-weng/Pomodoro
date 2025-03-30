@@ -58,6 +58,8 @@
 #include "samples_guitar_30sec.h"
 #include "samples_fluffing_duck_30sec_44100.h"
 #include "samples_boo_44100.h"
+#include "samples_keyboard_click_44100.h"
+
 
 #define clock_rate 100000000
 #define quarter_clock clock_rate / 4
@@ -172,6 +174,8 @@ int dot2[] = {159, 100, 160, 101};
 double volume_factor = 0.5;
 bool mute = false;
 bool boo_pressed = false;
+bool keyboard_pressed = false;
+
 // most of these are imported through headers
 
 // audio functions
@@ -577,6 +581,10 @@ void audio_ISR_timer2(void)
             play_audio_samples_no_loop(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, &boo_pressed);
         }
 
+        if (keyboard_pressed) {
+            play_audio_samples_no_loop(keyboard_click_44100_samples, keyboard_click_44100_num_samples, &keyboard_click_44100_index, &keyboard_pressed);
+        }
+
         // boo if skip studying
     }
 
@@ -725,6 +733,8 @@ void PS2_ISR(void)
     byte1 = byte2;
     byte2 = byte3;
     byte3 = PS2_data & 0xFF;
+
+    keyboard_pressed = true;
 
     if (byte2 == 0xF0)
     {
