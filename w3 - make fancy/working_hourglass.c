@@ -246,7 +246,7 @@ int main(void) {
         // *LEDR_ptr = hourglass_sec_to_wait;
 
         if (display_mode == 1) {
-            clear_rectangle(hourglass_erase, colour); // clear hourglass form toggling
+            clear_rectangle(hourglass_erase, colour); // clear hourglass from toggling
             // clear_rectangle(area_to_erase);
             // clear_rectangle(loading1);
             draw_rectangle(loading1, white); // display loading bar;
@@ -389,7 +389,7 @@ void erase_num(int x, int y) {
 }
 
 void display_num(int x, int y, short int line_color, int num) {
-    erase_num(x, y);
+    // erase_num(x, y);
     // draw
     if (num!=1 && num!=4) { // seg 0: 0 2 3 5 6 7 8 9
         for (int r=y+2; r<y+4; r++)
@@ -590,16 +590,6 @@ void KEY_ISR(void) {
             } else {
                 printf("Unexpected study mode %d.", study_mode);
             }
-            // clear_screen(colour);
-            // draw_rectangle(dot1, white);
-            // draw_rectangle(dot2, white);
-            // wait_for_v_sync();
-            // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-            // clear_screen(colour);
-            // draw_rectangle(dot1, white);
-            // draw_rectangle(dot2, white);
-            // wait_for_v_sync();
-            // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
             key_mode = 1;
         } else {
             printf("Unexpected key mode %d.", key_mode);
@@ -622,16 +612,6 @@ void KEY_ISR(void) {
         } else {
             printf("Unexpected study mode %d.", study_mode);
         }
-        // clear_screen(black);
-        // draw_rectangle(dot1, white);
-        // draw_rectangle(dot2, white);
-        // wait_for_v_sync();
-        // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-        // clear_screen(black);
-        // draw_rectangle(dot1, white);
-        // draw_rectangle(dot2, white);
-        // wait_for_v_sync();
-        // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
     // for increasing & decreasing start value, check mode & if haven't ever pressed start
     } else if (pressed_key==4 && key_mode==1 && min_time<99) { // increase start value
         if (study_mode && min_time==pom_start_val) {
@@ -1099,10 +1079,4 @@ void reset_start_time(int start_time)
     } else {
         colour = navy;
     }
-    // clear_screen(colour);
-    // wait_for_v_sync();
-    // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
-    // clear_screen(colour);
-    // wait_for_v_sync();
-    // pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 }
