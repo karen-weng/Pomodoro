@@ -58,12 +58,10 @@
 #include "samples_guitar_30sec_44100.h"
 #include "samples_colourful_flower_30sec_44100.h"
 #include "samples_fluffing_duck_30sec_44100.h"
-#include "samples_boo_44100.h"
 #include "samples_keyboard_click_louder_44100.h"
 #include "samples_keyboard_click_2_44100.h"
 #include "samples_beep_beep_louder_44100.h"
 #include "samples_school_bell_louder_44100.h"
-
 
 
 // int rooster_index = 0;
@@ -667,22 +665,6 @@ void audio_ISR_timer2(void)
                 }
             }
         }
-
-
-
-        // probably delete booing
-
-        // if (boo_pressed)
-        // {
-        //     play_audio_samples_no_loop(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, &boo_pressed);
-        // }
-        // else if ((key_mode == 1) && (paused == true)) // when not counting and paused
-        // {
-        //     // boo
-        //     // pick a different audio sample
-        //     // play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, false);
-        // }
-        // boo if skip studying
     }
 
     // ^ THAT IS IMPORTANT IT IS AUDIO ITS JUST COMPONENTED OUT CAUSE ITS SLOW
@@ -1008,7 +990,6 @@ void pressed_enter(void)
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
         key_mode = 1;
         paused = true;
-        // boo_44100_index = 0; // reset boo sound
     }
     else if (key_mode == 3)
     { // update next countdown start value
@@ -1048,14 +1029,6 @@ void pressed_tab(void)
 { // skip
     *(TIMER_ptr + 0x1) = 0xB;
     key_mode = 1; // auto-set to start // not counting
-    if (study_mode) {
-        boo_pressed = true;
-        boo_44100_index = 0;
-    }
-    else {
-        boo_pressed = false;
-
-    }
     study_mode = !study_mode;
     
     sec_time = 0;
