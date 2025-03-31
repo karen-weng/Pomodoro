@@ -62,6 +62,8 @@
 #include "samples_keyboard_click_2_44100.h"
 #include "samples_beep_beep_louder_44100.h"
 #include "samples_school_bell_louder_44100.h"
+#include "samples_animal_crossing_30sec_44100.h"
+
 
 
 // int rooster_index = 0;
@@ -205,7 +207,7 @@ bool mute = false;
 bool keyboard_pressed = false;
 int alarm_mode = 1; // 1 rooster, 2 school bell, 3 beep beep
 int study_music_mode = 1; // 1 colourful flowers, 2 guitar
-
+int break_music_mode = 1; // 1 fluffing a duck, 2 animal crossing
 
 int *keyboard_samples;
 int keyboard_samples_n;
@@ -739,7 +741,12 @@ void audio_ISR_timer2(void)
                 else if (!paused) {
                     // fluffing duck
                     // break mode{
-                    play_audio_samples_overlay(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
+                    if (study_music_mode == 1) {
+                        play_audio_samples_overlay(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
+                    }
+                    else if (study_music_mode == 2) {
+                        play_audio_samples_overlay(animal_crossing_30sec_44100_samples, animal_crossing_30sec_44100_num_samples, &animal_crossing_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
+                    }
                 }
             }
     
@@ -778,7 +785,13 @@ void audio_ISR_timer2(void)
                 else if (!paused) {
                     // break mode
                     // fluffing duck
-                    play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
+
+                    if (break_music_mode == 1) {
+                        play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
+                    }
+                    else if (break_music_mode == 2) {
+                        play_audio_samples(animal_crossing_30sec_44100_samples, animal_crossing_30sec_44100_num_samples, &animal_crossing_30sec_44100_index);
+                    }
                 }
             }
             else if (key_mode == 3) { // alarm
@@ -930,7 +943,7 @@ void KEY_ISR(void)
             small_break_start_val--;
             min_time = small_break_start_val;
         }
-        else if (!study_mode && min_time == big_break_start_val)
+        else if (!study_mode && min_time == big_break_start_val && study_session_count%4==0)
         {
             big_break_start_val--;
             min_time = big_break_start_val;
@@ -1091,6 +1104,14 @@ void PS2_ISR(void)
             case 0x4B:
                 study_music_mode = 2;
                 break; // L
+
+                // break music
+            case 0x32: 
+                break_music_mode = 1;
+                break; // N
+            case 0x3A:
+                break_music_mode = 2;
+                break; // M
 
                 // keyboard click sound effects
             case 0x41: // 

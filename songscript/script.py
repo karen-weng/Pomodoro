@@ -2,7 +2,7 @@ import numpy as np
 
 if __name__ == "__main__":
     # Read raw PCM file
-    filename_beginning = "guitar_3sec_44100"
+    filename_beginning = "animal_crossing_30sec_44100"
     filename = filename_beginning+".raw"
     data = np.fromfile(filename, dtype=np.uint32)  # Read as 32-bit unsigned integers
 
