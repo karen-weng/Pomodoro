@@ -1653,6 +1653,7 @@ void draw_hourglass_drip()
 void reset_start_time(int start_time)
 {
     min_time = start_time;
+    points = 0;
     hourglass_sec_to_wait = start_time;
     reset_hourglass_drip();
     if (start_time==pom_start_val) {
