@@ -1562,7 +1562,7 @@ void reset_start_time(int start_time)
     if (start_time==pom_start_val) {
         colour = red;
         colour2 = dark_red;
-    } else if (start_time==small_break_start_val) {
+    } else if (start_time==small_break_start_val && study_session_count%4!=0) {
         colour = teal;
         colour2 = dark_teal;
     } else {
