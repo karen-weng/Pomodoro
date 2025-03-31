@@ -429,7 +429,9 @@ int main(void)
                 Y1 = loading1[1]-num_l*1.4+num_l;
                 delay_count++;
             }
-            
+            if (edit_mode!=0 && delay_count>4) {
+                clear_rectangle(x0, Y0, x1, Y1, colour2);
+            }
             display_text(21, 5, clear_text);   // character buffer is 80 by 60
             display_text(21, 40, clear_text);
             display_text(21, 45, clear_text);
@@ -922,6 +924,7 @@ void KEY_ISR(void)
         }
         else if (key_mode == 3)
         { // update next countdown start value
+            game_mode = 0;
             study_mode = !study_mode;
             if (study_mode)
             {
