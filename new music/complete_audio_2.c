@@ -419,15 +419,15 @@ int main(void)
 
             if (edit_mode==1) { // editing minutes 'ten's
                 x0 = loading1[0];
-                Y0 = loading1[1] - num_l * 3.1;
+                Y0 = loading1[1]-num_l*1.4;
                 x1 = loading1[0]+num_w;
-                Y1 = loading1[1] - num_l * 3.1+num_l;
+                Y1 = loading1[1]-num_l*1.4+num_l;
                 delay_count++; 
             } else if (edit_mode==2) { // editing minutes 'one's
                 x0 = loading1[0]+num_w;
-                Y0 = loading1[1] - num_l * 3.1;
+                Y0 = loading1[1]-num_l*1.4;
                 x1 = loading1[0]+num_w+num_w;
-                Y1 = loading1[1] - num_l * 3.1+num_l;
+                Y1 = loading1[1]-num_l*1.4+num_l;
                 delay_count++;
             }
             if (edit_mode!=0 && delay_count>4) {
@@ -1194,8 +1194,11 @@ void PS2_ISR(void)
                 break; // L
 
                 // break music
-            case 0x32: 
+            case 0xB2: 
                 break_music_mode = 1;
+                break; // N
+            case 0x32: 
+                break_music_mode = 2;
                 break; // N
             case 0x3A:
                 break_music_mode = 2;
