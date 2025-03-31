@@ -1018,6 +1018,10 @@ void PS2_ISR(void)
             case 0x2D: // right now deosnt care if it is currently alarm or not
                 // led_display_val = 256;
                 // recording = false;
+                if (study_mode && min_time==pom_start_val) {
+                    study_session_count = 1;
+                    session_count_text[19] = study_session_count+'0';
+                }
                 break; // R
 
                 // alarm modes sound effects
