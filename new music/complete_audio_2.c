@@ -817,7 +817,7 @@ void audio_ISR_timer2(void)
                     else if (break_music_mode == 2) {
                         play_audio_samples_overlay(animal_crossing_30sec_44100_samples, animal_crossing_30sec_44100_num_samples, &animal_crossing_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
                     }
-                    else if (study_music_mode == 3) {
+                    else if (break_music_mode == 3) {
                         play_audio_samples_overlay(ecstatic_vibrations_30sec_44100_samples, ecstatic_vibrations_30sec_44100_num_samples, &ecstatic_vibrations_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
                     }
                 }
@@ -1201,7 +1201,7 @@ void PS2_ISR(void)
                 break_music_mode = 2;
                 break; // N
             case 0x3A:
-                break_music_mode = 2;
+                break_music_mode = 3;
                 break; // M
 
                 // keyboard click sound effects
