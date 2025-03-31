@@ -1034,6 +1034,7 @@ void pressed_down(void)
             big_break_start_val--;
             reset_start_time(big_break_start_val);
         }
+    }
 }
 
 void change_edit_status(int num) {
