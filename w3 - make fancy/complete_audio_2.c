@@ -1404,6 +1404,7 @@ void pressed_tab(void)
     key_mode = 1; // auto-set to start // not counting
     study_mode = !study_mode;    
     sec_time = 0;
+    game_mode = 0;
     if (study_mode)
     {
         reset_start_time(pom_start_val);
