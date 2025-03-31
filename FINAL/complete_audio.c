@@ -340,7 +340,7 @@ int main(void)
                 display_text(21, 45, break_msg);
             }
             display_text(21, 40, session_count_text);
-            for (int i = loading2[20]; i < loading2[3]; i++) {
+            for (int i = loading2[1]; i < loading2[3]; i++) {
                 int num = (loading2[2] - loading2[0]) * (tot - min_time * 60 - sec_time) / tot + loading2[0];
                 draw_line(loading2[0], i, num, i, white);
             }
