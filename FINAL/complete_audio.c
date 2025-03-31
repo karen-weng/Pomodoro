@@ -826,6 +826,10 @@ void KEY_ISR(void)
             {
                 min_time = pom_start_val;
                 study_session_count++;
+                if (study_session_count>8) {
+                    study_session_count = 1;
+                }
+                session_count_text[19] = study_session_count+'0';
             }
             else if (!study_mode && study_session_count % 4 != 0)
             {
@@ -856,6 +860,10 @@ void KEY_ISR(void)
         {
             min_time = pom_start_val;
             study_session_count++;
+            if (study_session_count>8) {
+                study_session_count = 1;
+            }
+            session_count_text[19] = study_session_count+'0';
         }
         else if (!study_mode && study_session_count % 4 != 0)
         {
@@ -1200,6 +1208,9 @@ void pressed_enter(void)
             reset_start_time(pom_start_val);
 
             study_session_count++;
+            if (study_session_count>8) {
+                study_session_count = 1;
+            }
             session_count_text[19] = study_session_count+'0';
         }
         else if (!study_mode && study_session_count % 4 != 0)
@@ -1238,6 +1249,9 @@ void pressed_tab(void)
         reset_start_time(pom_start_val);
 
         study_session_count++;
+        if (study_session_count>8) {
+            study_session_count = 1;
+        }
         session_count_text[19] = study_session_count+'0';
     }
     else if (!study_mode && study_session_count % 4 != 0)
