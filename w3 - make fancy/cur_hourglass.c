@@ -254,7 +254,7 @@ int main(void) {
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 
-        *LEDR_ptr = edit_mode;
+        *LEDR_ptr = tot;
         // clear_rectangle(num_coords, colour);
         clear_screen(colour);
         if (display_mode == 1) {
@@ -277,7 +277,7 @@ int main(void) {
                 display_text(21, 45, break_msg);
             }
             display_text(21, 40, session_count_text);
-            for (int i = loading2[20]; i < loading2[3]; i++) {
+            for (int i = loading2[1]; i < loading2[3]; i++) {
                 int num = (loading2[2] - loading2[0]) * (tot - min_time * 60 - sec_time) / tot + loading2[0];
                 draw_line(loading2[0], i, num, i, white);
             }
