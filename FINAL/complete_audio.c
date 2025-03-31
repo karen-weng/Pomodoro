@@ -740,6 +740,9 @@ void audio_ISR_timer2(void)
                     play_audio_samples_overlay(beep_beep_louder_44100_samples, beep_beep_louder_44100_num_samples, &beep_beep_louder_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);
                 }
             }
+            else {
+                play_audio_samples_no_loop(keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);
+            }
         }
         // no keyboard sound effect
         else {
