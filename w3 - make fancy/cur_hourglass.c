@@ -168,7 +168,7 @@ char modes_text[40] = "Pomodoro     Short Break     Long Break\0";
 char clear_text[40] = "                                       \0";
 volatile char session_count_text[40] = "                  #X                   \0";
 char pomodoro_msg[40] = "            Time to focus!             \0";
-char break_msg[40] = "         Time for a break!             \0";
+char break_msg[40] = "           Time for a break!           \0";
 
 int num_w = 30;
 int num_l = 40;
@@ -247,7 +247,7 @@ int main(void) {
     clear_screen(colour); // pixel_buffer_start points to the pixel buffer
     draw_rectangle(dot1, white);
     draw_rectangle(dot2, white);
-    session_count_text[19] = study_session_count;
+    session_count_text[19] = study_session_count+'0';
     while (1) {
         hex_to_dec(min_time, min_digits);
         hex_to_dec(sec_time, sec_digits);
@@ -265,15 +265,15 @@ int main(void) {
             draw_rectangle(loading2, white); // display loading bar;
             if (colour==red) {
                 tot = pom_start_val * 60;
-                clear_rectangle(76, 17, 115, 27, colour2);
+                clear_rectangle(80, 17, 119, 27, colour2);
                 display_text(21, 45, pomodoro_msg);
             } else if (colour==teal) {
                 tot = small_break_start_val * 60;
-                clear_rectangle(76+53, 17, 115+64, 27, colour2);
+                clear_rectangle(76+57, 17, 115+68, 27, colour2);
                 display_text(21, 45, break_msg);
             } else {
                 tot = big_break_start_val * 60;
-                clear_rectangle(76+53+62, 17, 115+64+61, 27, colour2);
+                clear_rectangle(76+57+62, 17, 115+68+61, 27, colour2);
                 display_text(21, 45, break_msg);
             }
             display_text(21, 40, session_count_text);
@@ -282,7 +282,9 @@ int main(void) {
                 draw_line(loading2[0], i, num, i, white);
             }
             display_text(21, 5, modes_text);   // character buffer is 80 by 60
-            display_text(21, 55, clear_text);   // character buffer is 80 by 60
+            display_text(21, 58, clear_text);   // character buffer is 80 by 60
+            display_text(21, 50, clear_text);
+            display_text(21, 52, clear_text);
             display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
             draw_rectangle(dot1, white);
@@ -315,28 +317,35 @@ int main(void) {
         else if (display_mode == 2) {
             if (colour==red) {
                 tot = pom_start_val * 60;
-                clear_rectangle(76, 217, 115, 227, colour2);
+                clear_rectangle(80, 227, 119, 237, colour2);
+                display_text(21, 52, pomodoro_msg);
             } else if (colour==teal) {
                 tot = small_break_start_val * 60;
-                clear_rectangle(76+53, 217, 115+64, 227, colour2);
+                clear_rectangle(80+53, 227, 119+64, 237, colour2);
+                display_text(21, 52, break_msg);
             } else {
                 tot = big_break_start_val * 60;
-                clear_rectangle(76+53+62, 217, 115+64+61, 227, colour2);
+                clear_rectangle(80+53+62, 227, 119+64+61, 237, colour2);
+                display_text(21, 52, break_msg);
             }
+
+            display_text(21, 50, session_count_text);
+
             // clear_rectangle(hourglass_erase, colour);
             draw_hourglass_top(61 + hourglass_draw_index);
             draw_hourglass_bottom(190 - hourglass_draw_index);
             draw_hourglass_drip();
             draw_hourglass_frame();
             display_text(21, 5, clear_text);   // character buffer is 80 by 60
+            display_text(21, 40, clear_text);
             display_text(21, 45, clear_text);
-            display_text(21, 55, modes_text);   // character buffer is 80 by 60
-            display_num(loading1[0], loading1[1] - num_l * 3, white, min_digits[1]);
-            display_num(loading1[0] + num_w, loading1[1] - num_l * 3, white, min_digits[0]);
+            display_text(21, 58, modes_text);   // character buffer is 80 by 60
+            display_num(loading1[0], loading1[1] - num_l * 3.1, white, min_digits[1]);
+            display_num(loading1[0] + num_w, loading1[1] - num_l * 3.1, white, min_digits[0]);
             draw_rectangle(dot3, white);
             draw_rectangle(dot4, white);
-            display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 3, white, sec_digits[1]);
-            display_num(loading1[2] - num_w, loading1[1] - num_l * 3, white, sec_digits[0]);
+            display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 3.1, white, sec_digits[1]);
+            display_num(loading1[2] - num_w, loading1[1] - num_l * 3.1, white, sec_digits[0]);
         }
 
     }
@@ -632,7 +641,7 @@ void KEY_ISR(void) {
             if (study_mode) {
                 min_time = pom_start_val;
                 study_session_count++;
-                session_count_text[19] = study_session_count;
+                session_count_text[19] = study_session_count+'0';
                 colour = red;
                 colour2 = dark_red;
             } else if (!study_mode && study_session_count%4!=0) {
@@ -658,7 +667,7 @@ void KEY_ISR(void) {
         if (study_mode) {
             min_time = pom_start_val;
             study_session_count++;
-            session_count_text[19] = study_session_count;
+            session_count_text[19] = study_session_count+'0';
             colour = red;
             colour2 = dark_red;
         } else if (!study_mode && study_session_count%4!=0) {
@@ -891,7 +900,7 @@ void pressed_enter(void)
             reset_start_time(pom_start_val);
             
             study_session_count++;
-            session_count_text[19] = study_session_count;
+            session_count_text[19] = study_session_count+'0';
         }
         else if (!study_mode && study_session_count % 4 != 0)
         {
@@ -926,7 +935,7 @@ void pressed_tab(void)
         reset_start_time(pom_start_val);
         
         study_session_count++;
-        session_count_text[19] = study_session_count;
+        session_count_text[19] = study_session_count+'0';
     }
     else if (!study_mode && study_session_count % 4 != 0)
     {
