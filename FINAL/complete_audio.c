@@ -293,7 +293,7 @@ int main(void)
     colour2 = dark_red;
     tot = min_time*60;
     hourglass_sec_to_wait = pom_start_val;
-    pomodoro_msg[26] = (char) 1;
+    pomodoro_msg[27] = (char) 1;
     break_msg[29] = (char) 1;
     
     /* set front pixel buffer to buffer 1 */
