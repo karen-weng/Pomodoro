@@ -665,22 +665,6 @@ void audio_ISR_timer2(void)
                 }
             }
         }
-
-
-
-        // probably delete booing
-
-        // if (boo_pressed)
-        // {
-        //     play_audio_samples_no_loop(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, &boo_pressed);
-        // }
-        // else if ((key_mode == 1) && (paused == true)) // when not counting and paused
-        // {
-        //     // boo
-        //     // pick a different audio sample
-        //     // play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, false);
-        // }
-        // boo if skip studying
     }
 
     // ^ THAT IS IMPORTANT IT IS AUDIO ITS JUST COMPONENTED OUT CAUSE ITS SLOW
