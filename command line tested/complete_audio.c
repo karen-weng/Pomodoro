@@ -140,6 +140,8 @@ void setup_hourglass();
 void draw_hourglass_top(int top);
 void draw_hourglass_bottom(int top);
 void draw_hourglass_drip();
+void reset_hourglass_drip();
+
 
 void toggle_display();
 void change_edit_status(int);
@@ -1025,6 +1027,7 @@ void PS2_ISR(void)
                 *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
                 key_mode = 1;
                 sec_time = 0;
+                reset_hourglass_drip();
                 if (colour==red) {
                     min_time = pom_start_val;
                 } else if (colour==teal) {
@@ -1123,6 +1126,8 @@ void PS2_ISR(void)
                 break; // tab
             case 0x29:
                 // led_display_val = 256;
+                change_edit_status(-2);     // exit edit mode
+                pressed_enter();
                 break; // space
             case 0x66:
                 // led_display_val = 256;
@@ -1517,9 +1522,7 @@ void reset_start_time(int start_time)
 {
     min_time = start_time;
     hourglass_sec_to_wait = start_time;
-    hourglass_draw_index = 0;
-    hourglass_drip_start = 0;
-    hourglass_drip_end = 0;
+    reset_hourglass_drip();
     if (start_time==pom_start_val) {
         colour = red;
         colour2 = dark_red;
@@ -1530,6 +1533,12 @@ void reset_start_time(int start_time)
         colour = navy;
         colour2 = dark_navy;
     }
+}
+
+void reset_hourglass_drip() {
+    hourglass_draw_index = 0;
+    hourglass_drip_start = 0;
+    hourglass_drip_end = 0;
 }
 
 void reset_alarm_index()
