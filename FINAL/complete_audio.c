@@ -741,10 +741,10 @@ void audio_ISR_timer2(void)
                 else if (!paused) {
                     // fluffing duck
                     // break mode{
-                    if (study_music_mode == 1) {
+                    if (break_music_mode == 1) {
                         play_audio_samples_overlay(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
                     }
-                    else if (study_music_mode == 2) {
+                    else if (break_music_mode == 2) {
                         play_audio_samples_overlay(animal_crossing_30sec_44100_samples, animal_crossing_30sec_44100_num_samples, &animal_crossing_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
                     }
                 }
