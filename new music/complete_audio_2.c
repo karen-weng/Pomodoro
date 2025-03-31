@@ -1656,6 +1656,7 @@ void reset_start_time(int start_time)
 {
     min_time = start_time;
     hourglass_sec_to_wait = start_time;
+    points = 0;
     reset_hourglass_drip();
     if (start_time==pom_start_val) {
         colour = red;
