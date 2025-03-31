@@ -1106,7 +1106,7 @@ void PS2_ISR(void)
                 break; // L
 
                 // break music
-            case 0x32: 
+            case 0x31: 
                 break_music_mode = 1;
                 break; // N
             case 0x3A:
