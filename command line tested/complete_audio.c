@@ -101,11 +101,10 @@ volatile unsigned char byte3 = 0;
 
 // pom timer variables
 volatile int pom_start_val = 25;
-// volatile int small_break_start_val = 5;
-volatile int small_break_start_val = 1; // TODO
-
+volatile int small_break_start_val = 5;
 volatile int big_break_start_val = 15;
 volatile int sec_time = 0;
+volatile int tot;
 volatile int min_time = 0;
 volatile int key_mode = 1;       // 1 for start, 2 for pause, 3 for stop (ringing) --> multiply by 2 for break vals
 volatile bool study_mode = true; // true for pomodoro, false for break,
@@ -121,11 +120,13 @@ volatile int *TIMER_AUDIO_ptr = (int *)TIMER_2_BASE;
 volatile int *KEY_ptr = (int *)KEY_BASE;
 // vga functions
 void plot_pixel(int, int, short int); // plots one pixel
-void clear_screen();                  // clear whole screen
-void clear_rectangle(int[]);
+void clear_screen(short int);         // clear whole screen
+void clear_rectangle(int, int, int, int, short int);
+void display_text(int, int, char *);
 
 // vga timer functions
 void display_num(int, int, short int, int);
+void erase_num(int, int);
 void hex_to_dec(int, int *);
 void draw_line(int, int, int, int, short int);
 void draw_rectangle(int[], short int);
@@ -141,10 +142,12 @@ void draw_hourglass_bottom(int top);
 void draw_hourglass_drip();
 
 void toggle_display();
-
+void change_edit_status(int);
 void reset_start_time(int start_time);
 
-int hourglass_erase[] = {90, 50, 230, 190}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+int hourglass_erase[] = {89, 0, 232, 191}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+// int hourglass_erase[] = {89, 50, 231, 191}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+
 
 int display_mode = 1; // 1 for loading bar, 2 for hourglass
 int hourglass_draw_index = 0;
@@ -155,28 +158,48 @@ int hourglass_x_right;
 int hourglass_drip_end = 0;
 int hourglass_drip_start = 0;
 int drip_wait_counter = 0;
-int drip_wait_time = 150;
+int drip_wait_time = 100;
 
 volatile int *PIXEL_BUF_CTRL_ptr = (int *)PIXEL_BUF_CTRL_BASE;
 int pixel_buffer_start;      // global variable
 short int buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int buffer2[240][512];
-short int white = 0xFFFFFF;
-short int red = 0xB85C5C;
+int colour;
+int colour2;
+short int black = 0x0;
+short int white = 0xFFFF;
+short int grey = 0x8494;
+short int red = 0xB2EB;
+short int dark_red = 0xAA48;
+short int teal = 0x5B92;
+short int dark_teal = 0x4310;
+short int navy = 0x53F3;
+short int dark_navy = 0x4372;
+int edit_mode = 0;
+int delay_count = 0;
+int min_digits[2];
+int sec_digits[2];
+int x0, y0, x1, y1;
+char modes_text[40] = "Pomodoro     Short Break     Long Break\0";
+char clear_text[40] = "                                       \0";
+volatile char session_count_text[40] = "                  #X                   \0";
+char pomodoro_msg[40] = "            Time to focus!             \0";
+char break_msg[40] = "           Time for a break!           \0";
 
 int num_w = 30;
 int num_l = 40;
 int loading1[] = {100, 130, 220, 150};
 int loading2[] = {101, 131, 219, 149};
 int area_to_erase[] = {100, 74, 220, 150}; // UPDATE THIS IF TWEAKING DISPLAY LOCATION
+int num_coords[] = {132,80,200,120};
 int dot1[] = {159, 90, 160, 91};
 int dot2[] = {159, 100, 160, 101};
-
+int dot3[] = {159, 25, 160, 26};
+int dot4[] = {159, 35, 160, 36};
 
 // audio variables
 double volume_factor = 0.5;
 bool mute = false;
-bool boo_pressed = false;
 bool keyboard_pressed = false;
 int alarm_mode = 1; // 1 rooster, 2 school bell, 3 beep beep
 int study_music_mode = 1; // 1 colourful flowers, 2 guitar
@@ -266,58 +289,87 @@ int main(void)
     __asm__ volatile("csrs mstatus, %0" ::"r"(mstatus_value));
 
     min_time = pom_start_val;
+    colour = red;
+    colour2 = dark_red;
+    tot = min_time*60;
     hourglass_sec_to_wait = pom_start_val;
 
+    
     /* set front pixel buffer to buffer 1 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int)&buffer1; // first store the address in the  back buffer
     /* now, swap the front/back buffers, to set the front buffer location */
     wait_for_v_sync();
     /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *PIXEL_BUF_CTRL_ptr;
-    // clear_screen(); // pixel_buffer_start points to the pixel buffer
+    clear_screen(colour); // pixel_buffer_start points to the pixel buffer
+    draw_rectangle(dot1, white);
+    draw_rectangle(dot2, white);
     /* set back pixel buffer to buffer 2 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int)&buffer2;
     pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // we draw on the back buffer
-    clear_screen();                                 // pixel_buffer_start points to the pixel buffer
-    int min_digits[2];
-    int sec_digits[2];
-    while (1)
-    {
-
+    clear_screen(colour); // pixel_buffer_start points to the pixel buffer
+    draw_rectangle(dot1, white);
+    draw_rectangle(dot2, white);
+    session_count_text[19] = study_session_count+'0';
+    while (1) {
         hex_to_dec(min_time, min_digits);
         hex_to_dec(sec_time, sec_digits);
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 
-        *LEDR_ptr = hourglass_draw_index;
-        // *LEDR_ptr = hourglass_sec_to_wait;
-
-        if (display_mode == 1)
-        {
-            clear_rectangle(hourglass_erase); // clear hourglass form toggling
+        *LEDR_ptr = edit_mode;
+        // clear_rectangle(num_coords, colour);
+        clear_screen(colour);
+        if (display_mode == 1) {
+            // clear_rectangle(hourglass_erase, colour); // clear hourglass from toggling
             // clear_rectangle(area_to_erase);
             // clear_rectangle(loading1);
             draw_rectangle(loading1, white); // display loading bar;
             draw_rectangle(loading2, white); // display loading bar;
-            for (int i = loading2[1]; i < loading2[3]; i++)
-            {
-                int tot;
-                if (study_mode)
-                {
-                    tot = pom_start_val * 60;
-                }
-                else if (study_session_count % 4 != 0)
-                {
-                    tot = small_break_start_val * 60;
-                }
-                else
-                {
-                    tot = big_break_start_val * 60;
-                }
+            if (colour==red) {
+                tot = pom_start_val * 60;
+                clear_rectangle(80, 17, 119, 27, colour2);
+                display_text(21, 45, pomodoro_msg);
+            } else if (colour==teal) {
+                tot = small_break_start_val * 60;
+                clear_rectangle(76+57, 17, 115+68, 27, colour2);
+                display_text(21, 45, break_msg);
+            } else {
+                tot = big_break_start_val * 60;
+                clear_rectangle(76+57+62, 17, 115+68+61, 27, colour2);
+                display_text(21, 45, break_msg);
+            }
+            display_text(21, 40, session_count_text);
+            for (int i = loading2[1]; i < loading2[3]; i++) {
                 int num = (loading2[2] - loading2[0]) * (tot - min_time * 60 - sec_time) / tot + loading2[0];
                 draw_line(loading2[0], i, num, i, white);
             }
-
+            display_text(21, 5, modes_text);   // character buffer is 80 by 60
+            display_text(21, 58, clear_text);   // character buffer is 80 by 60
+            display_text(21, 50, clear_text);
+            display_text(21, 52, clear_text);
+            display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
+            display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
+            draw_rectangle(dot1, white);
+            draw_rectangle(dot2, white);
+            display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 1.4, white, sec_digits[1]);
+            display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
+            if (edit_mode==1) { // editing minutes 'ten's
+                x0 = loading1[0];
+                y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0]+num_w;
+                y1 = loading1[1]-num_l*1.4+num_l;
+                delay_count++; 
+            } else if (edit_mode==2) { // editing minutes 'one's
+                x0 = loading1[0]+num_w;
+                y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0]+num_w+num_w;
+                y1 = loading1[1]-num_l*1.4+num_l;
+                delay_count++;
+            }
+            if (edit_mode!=0 && delay_count>4) {
+                clear_rectangle(x0, y0, x1, y1, colour2);
+            }
             display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
             draw_rectangle(dot1, white);
@@ -325,13 +377,38 @@ int main(void)
             display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 1.4, white, sec_digits[1]);
             display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
         }
-        else if (display_mode == 2)
-        {
-            clear_rectangle(hourglass_erase);
+        else if (display_mode == 2) {
+            if (colour==red) {
+                tot = pom_start_val * 60;
+                clear_rectangle(80, 227, 119, 237, colour2);
+                display_text(21, 52, pomodoro_msg);
+            } else if (colour==teal) {
+                tot = small_break_start_val * 60;
+                clear_rectangle(80+53, 227, 119+64, 237, colour2);
+                display_text(21, 52, break_msg);
+            } else {
+                tot = big_break_start_val * 60;
+                clear_rectangle(80+53+62, 227, 119+64+61, 237, colour2);
+                display_text(21, 52, break_msg);
+            }
+
+            display_text(21, 50, session_count_text);
+
+            // clear_rectangle(hourglass_erase, colour);
             draw_hourglass_top(61 + hourglass_draw_index);
             draw_hourglass_bottom(190 - hourglass_draw_index);
             draw_hourglass_drip();
             draw_hourglass_frame();
+            display_text(21, 5, clear_text);   // character buffer is 80 by 60
+            display_text(21, 40, clear_text);
+            display_text(21, 45, clear_text);
+            display_text(21, 58, modes_text);   // character buffer is 80 by 60
+            display_num(loading1[0], loading1[1] - num_l * 3.1, white, min_digits[1]);
+            display_num(loading1[0] + num_w, loading1[1] - num_l * 3.1, white, min_digits[0]);
+            draw_rectangle(dot3, white);
+            draw_rectangle(dot4, white);
+            display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 3.1, white, sec_digits[1]);
+            display_num(loading1[2] - num_w, loading1[1] - num_l * 3.1, white, sec_digits[0]);
         }
 
         // draw image icons
@@ -431,17 +508,14 @@ void draw_rectangle(int coords[], short int colour)
     draw_line(coords[2], coords[1], coords[2], coords[3], colour);
 }
 
-void clear_screen()
-{
-    int coords[] = {0, 320, 0, 240};
-    clear_rectangle(coords);
+void clear_screen(short int c) {
+    clear_rectangle(0, 0, 319, 239, c); // ERROR
 }
 
-void clear_rectangle(int coords[])
-{
-    for (int x = coords[0]; x < coords[2]; x++)
-        for (int y = coords[1]; y < coords[3]; y++)
-            plot_pixel(x, y, 0);
+void clear_rectangle(int x0, int y0, int x1, int y1, short int c) {
+    for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++)
+            plot_pixel(x, y, c);
 }
 
 void display_num(int x, int y, short int line_color, int num)
@@ -492,7 +566,7 @@ void display_num(int x, int y, short int line_color, int num)
 
 void hex_to_dec(int hex_value, int digits[])
 {
-    if (hex_value > 59)
+    if (hex_value > 99)
     {
         printf("Invalid value: Maximum allowed is 59\n");
         return;
@@ -530,16 +604,14 @@ void handler(void)
 }
 
 // FPGA interval timer interrupt service routine
-void itimer_ISR(void)
-{
+void itimer_ISR(void) {
     *TIMER_ptr = 0; // clear interrupt
     if (sec_time == 0 && min_time != 0)
     { // down a minute but timer not over
         min_time -= 1;
         sec_time = 59;
     }
-    else
-    {
+    else {
         sec_time -= 1; // decrease pom timer counter
     }
     if (sec_time == 0 && min_time == 0)
@@ -548,15 +620,12 @@ void itimer_ISR(void)
         *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
     }
 
-    if (hourglass_sec_counter < hourglass_sec_to_wait - 1)
-    {
+    if (hourglass_sec_counter < hourglass_sec_to_wait-1) {
         hourglass_sec_counter++;
     }
-    else
-    {
+    else {
         hourglass_sec_counter = 0;
         hourglass_draw_index++;
-        // hourglass_new_segment = true;
     }
 }
 
@@ -629,10 +698,7 @@ void audio_ISR_timer2(void)
 {
     *TIMER_AUDIO_ptr = 0; // reset interrupt
     // already set to continue timer
-
     // TODO add mute variable
-
-
     if (mute) {
         if (keyboard_pressed) {
             play_audio_samples_no_loop(keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);
@@ -674,6 +740,9 @@ void audio_ISR_timer2(void)
                     play_audio_samples_overlay(beep_beep_louder_44100_samples, beep_beep_louder_44100_num_samples, &beep_beep_louder_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);
                 }
             }
+            else {
+                play_audio_samples_no_loop(keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);
+            }
         }
         // no keyboard sound effect
         else {
@@ -710,22 +779,6 @@ void audio_ISR_timer2(void)
                 }
             }
         }
-
-
-
-        // probably delete booing
-
-        // if (boo_pressed)
-        // {
-        //     play_audio_samples_no_loop(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, &boo_pressed);
-        // }
-        // else if ((key_mode == 1) && (paused == true)) // when not counting and paused
-        // {
-        //     // boo
-        //     // pick a different audio sample
-        //     // play_audio_samples(boo_44100_samples, boo_44100_num_samples, &boo_44100_index, false);
-        // }
-        // boo if skip studying
     }
 
     // ^ THAT IS IMPORTANT IT IS AUDIO ITS JUST COMPONENTED OUT CAUSE ITS SLOW
@@ -776,6 +829,10 @@ void KEY_ISR(void)
             {
                 min_time = pom_start_val;
                 study_session_count++;
+                if (study_session_count>8) {
+                    study_session_count = 1;
+                }
+                session_count_text[19] = study_session_count+'0';
             }
             else if (!study_mode && study_session_count % 4 != 0)
             {
@@ -806,6 +863,10 @@ void KEY_ISR(void)
         {
             min_time = pom_start_val;
             study_session_count++;
+            if (study_session_count>8) {
+                study_session_count = 1;
+            }
+            session_count_text[19] = study_session_count+'0';
         }
         else if (!study_mode && study_session_count % 4 != 0)
         {
@@ -910,41 +971,61 @@ void PS2_ISR(void)
             // 0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46
             case 0x45:
                 // led_display_val = 0;
+                change_edit_status(0);
                 break; // 0
             case 0x16:
+                change_edit_status(1);
                 // led_display_val = 1;
                 break; // 1
             case 0x1E:
+                change_edit_status(2);
                 // led_display_val = 2;
                 break; // 2
             case 0x26:
+                change_edit_status(3);
                 // led_display_val = 3;
                 break; // 3
             case 0x25:
+                change_edit_status(4);                
                 // led_display_val = 4;
                 break; // 4
             case 0x2E:
+                change_edit_status(5);
                 // led_display_val = 5;
                 break; // 5
             case 0x36:
+                change_edit_status(6);
                 // led_display_val = 6;
                 break; // 6
             case 0x3D:
+                change_edit_status(7);
                 // led_display_val = 7;
                 break; // 7
             case 0x3E:
+                change_edit_status(8);
                 // led_display_val = 8;
                 break; // 8
             case 0x46:
+                change_edit_status(9);
                 // led_display_val = 9;
                 break; // 9
 
             // letters
+            case 0x24:  // E
+                if (edit_mode==0) {
+                    change_edit_status(-1);
+                } else {
+                    change_edit_status(-2);
+                }
+                break;
             case 0x2D: // right now deosnt care if it is currently alarm or not
                 // led_display_val = 256;
                 // recording = false;
+                if (study_mode && min_time==pom_start_val) {
+                    study_session_count = 1;
+                    session_count_text[19] = study_session_count+'0';
+                }
                 break; // R
-
 
                 // alarm modes sound effects
             case 0x43: 
@@ -1008,10 +1089,12 @@ void PS2_ISR(void)
             // 0x5A, 0x0D, 0x29, 0x66
             case 0x5A:
                 // led_display_val = 512;
+                change_edit_status(-2);     // exit edit mode
                 pressed_enter();
                 break; // enter
             case 0x0D:
                 // led_display_val = 512;
+                change_edit_status(-2);     // exit edit mode
                 pressed_tab();
                 break; // tab
             case 0x29:
@@ -1019,6 +1102,7 @@ void PS2_ISR(void)
                 break; // space
             case 0x66:
                 // led_display_val = 256;
+                change_edit_status(10);
                 break; // backspace
             }
         }
@@ -1029,6 +1113,77 @@ void PS2_ISR(void)
         {
             // led_display_val = 256;
             // recording = true;
+        }
+    }
+}
+
+void display_text(int x, int y, char * text_ptr) {
+    int offset;
+    volatile char * character_buffer =
+    (char *)FPGA_CHAR_BASE; // video character buffer
+    /* assume that the text string fits on one line */
+    offset = (y << 7) + x;
+    while (*(text_ptr)) {
+        *(character_buffer + offset) =
+        *(text_ptr); // write to the character buffer
+        ++text_ptr;
+        ++offset;
+    }
+}
+
+void change_edit_status(int num) {
+    // if edit mode is zero, not editing, 1 for tens, 2 for ones
+    int start;
+    if (colour==red) {
+        start = pom_start_val;
+    } else if (colour==teal) {
+        start = small_break_start_val;
+    } else {
+        start = big_break_start_val;
+    }
+    if (key_mode==1 && min_time==start) {
+        if (num==-2) {      // stop editing
+            edit_mode = 0;
+            if (min_time==0) {  // if incorrect input of no minutes, set to default
+                if (colour==red) {
+                    min_time = 25;
+                    pom_start_val = min_time;
+                } else if (colour==teal) {
+                    min_time = 5;
+                    small_break_start_val = min_time;
+                } else {
+                    min_time = 15;
+                    big_break_start_val = min_time;
+                }
+            }
+        } else if (num==-1) {   // start editing
+            edit_mode = 1;
+            delay_count = 0;
+        } else {
+            if (edit_mode==1) {
+                edit_mode = 2;
+                if (num==10) {
+                    edit_mode = 1;
+                    num = 0;
+                } else {
+                    delay_count = 0;
+                }
+                min_time = num*10+min_time%10;
+            } else if (edit_mode==2) {
+                edit_mode = 1;
+                delay_count = 0;
+                if (num==10) {
+                    num = 0;
+                }
+                min_time = (min_time - min_time%10) + num;
+            }
+            if (colour==red) {
+                pom_start_val = min_time;
+            } else if (colour==teal) {
+                small_break_start_val = min_time;
+            } else {
+                big_break_start_val = min_time;
+            }
         }
     }
 }
@@ -1060,6 +1215,10 @@ void pressed_enter(void)
             reset_start_time(pom_start_val);
 
             study_session_count++;
+            if (study_session_count>8) {
+                study_session_count = 1;
+            }
+            session_count_text[19] = study_session_count+'0';
         }
         else if (!study_mode && study_session_count % 4 != 0)
         {
@@ -1090,14 +1249,17 @@ void pressed_tab(void)
 { // skip
     *(TIMER_ptr + 0x1) = 0xB;
     key_mode = 1; // auto-set to start // not counting
-    study_mode = !study_mode;
-    
+    study_mode = !study_mode;    
     sec_time = 0;
     if (study_mode)
     {
         reset_start_time(pom_start_val);
 
         study_session_count++;
+        if (study_session_count>8) {
+            study_session_count = 1;
+        }
+        session_count_text[19] = study_session_count+'0';
     }
     else if (!study_mode && study_session_count % 4 != 0)
     {
@@ -1115,7 +1277,7 @@ void pressed_tab(void)
 
 void pressed_up(void)
 {
-    if (key_mode == 1)
+    if (key_mode == 1 && min_time<99)
     { // increase start value
         if (study_mode && min_time == pom_start_val)
         {
@@ -1137,7 +1299,7 @@ void pressed_up(void)
 
 void pressed_down(void)
 { // skip
-    if (key_mode == 1)
+    if (key_mode == 1 && min_time>1)
     { // decrease start value
         if (study_mode && min_time == pom_start_val)
         {
@@ -1204,25 +1366,25 @@ void set_PS2()
 
 void draw_hourglass_frame()
 {
-    draw_line(90, 50, 230, 50, 0x8494);   // Top horizontal line
-    draw_line(90, 50, 157, 120, 0x8494);  // Left diagonal down
-    draw_line(230, 50, 163, 120, 0x8494); // Right diagonal down
+    draw_line(90, 50, 230, 50, white);   // Top horizontal line
+    draw_line(90, 50, 157, 120, white);  // Left diagonal down
+    draw_line(230, 50, 163, 120, white); // Right diagonal down
 
     // thicker
-    draw_line(89, 50, 231, 50, 0x8494);   // Top horizontal line
-    draw_line(89, 50, 156, 120, 0x8494);  // Left diagonal down
-    draw_line(231, 50, 164, 120, 0x8494); // Right diagonal down
+    draw_line(89, 50, 231, 50, white);   // Top horizontal line
+    draw_line(89, 50, 156, 120, white);  // Left diagonal down
+    draw_line(231, 50, 164, 120, white); // Right diagonal down
 
     // draw_line(157, 120, 163, 120, 0x8494); // Slight gap in middle
 
-    draw_line(157, 120, 90, 190, 0x8494);  // Left diagonal up
-    draw_line(163, 120, 230, 190, 0x8494); // Right diagonal up
-    draw_line(90, 190, 230, 190, 0x8494);  // Bottom horizontal line
+    draw_line(157, 120, 90, 190, white);  // Left diagonal up
+    draw_line(163, 120, 230, 190, white); // Right diagonal up
+    draw_line(90, 190, 230, 190, white);  // Bottom horizontal line
 
-    // thicker
-    draw_line(156, 120, 89, 190, 0x8494);  // Left diagonal up
-    draw_line(164, 120, 231, 190, 0x8494); // Right diagonal up
-    draw_line(89, 190, 231, 190, 0x8494);  // Bottom horizontal line
+    //thicker
+    draw_line(156, 120, 89, 190, white);  // Left diagonal up
+    draw_line(164, 120, 231, 190, white); // Right diagonal up
+    draw_line(89, 190, 231, 190, white);  // Bottom horizontal line
 }
 
 // void draw_hourglass_frame_big()
@@ -1334,6 +1496,16 @@ void reset_start_time(int start_time)
     hourglass_draw_index = 0;
     hourglass_drip_start = 0;
     hourglass_drip_end = 0;
+    if (start_time==pom_start_val) {
+        colour = red;
+        colour2 = dark_red;
+    } else if (start_time==small_break_start_val) {
+        colour = teal;
+        colour2 = dark_teal;
+    } else {
+        colour = navy;
+        colour2 = dark_navy;
+    }
 }
 
 void reset_alarm_index()
