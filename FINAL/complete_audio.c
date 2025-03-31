@@ -345,7 +345,7 @@ int main(void)
                 draw_line(loading2[0], i, num, i, white);
             }
             display_text(21, 5, modes_text);   // character buffer is 80 by 60
-            display_text(21, 58, clear_text);   // character buffer is 80 by 60
+            display_text(21, 57, clear_text);   // character buffer is 80 by 60
             display_text(21, 50, clear_text);
             display_text(21, 52, clear_text);
             display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
@@ -380,15 +380,15 @@ int main(void)
         else if (display_mode == 2) {
             if (colour==red) {
                 tot = pom_start_val * 60;
-                clear_rectangle(80, 227, 119, 237, colour2);
+                clear_rectangle(80, 225, 119, 235, colour2);
                 display_text(21, 52, pomodoro_msg);
             } else if (colour==teal) {
                 tot = small_break_start_val * 60;
-                clear_rectangle(80+53, 227, 119+64, 237, colour2);
+                clear_rectangle(80+53, 225, 119+64, 235, colour2);
                 display_text(21, 52, break_msg);
             } else {
                 tot = big_break_start_val * 60;
-                clear_rectangle(80+53+62, 227, 119+64+61, 237, colour2);
+                clear_rectangle(80+53+62, 225, 119+64+61, 235, colour2);
                 display_text(21, 52, break_msg);
             }
 
@@ -402,7 +402,7 @@ int main(void)
             display_text(21, 5, clear_text);   // character buffer is 80 by 60
             display_text(21, 40, clear_text);
             display_text(21, 45, clear_text);
-            display_text(21, 58, modes_text);   // character buffer is 80 by 60
+            display_text(21, 57, modes_text);   // character buffer is 80 by 60
             display_num(loading1[0], loading1[1] - num_l * 3.1, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 3.1, white, min_digits[0]);
             draw_rectangle(dot3, white);
