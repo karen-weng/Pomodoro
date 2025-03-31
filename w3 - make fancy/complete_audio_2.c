@@ -62,6 +62,8 @@
 #include "samples_keyboard_click_2_44100.h"
 #include "samples_beep_beep_louder_44100.h"
 #include "samples_school_bell_louder_44100.h"
+#include "samples_animal_crossing_30sec_44100.h"
+
 
 
 // int rooster_index = 0;
@@ -140,6 +142,8 @@ void setup_hourglass();
 void draw_hourglass_top(int top);
 void draw_hourglass_bottom(int top);
 void draw_hourglass_drip();
+void reset_hourglass_drip();
+
 
 void toggle_display();
 void change_edit_status(int);
@@ -179,7 +183,7 @@ int edit_mode = 0;
 int delay_count = 0;
 int min_digits[2];
 int sec_digits[2];
-int x0, y0, x1, y1;
+int x0, Y0, x1, Y1;
 char modes_text[40] = "Pomodoro     Short Break     Long Break\0";
 char clear_text[40] = "                                       \0";
 volatile char session_count_text[40] = "                  #X                   \0";
@@ -203,7 +207,7 @@ bool mute = false;
 bool keyboard_pressed = false;
 int alarm_mode = 1; // 1 rooster, 2 school bell, 3 beep beep
 int study_music_mode = 1; // 1 colourful flowers, 2 guitar
-
+int break_music_mode = 1; // 1 fluffing a duck, 2 animal crossing
 
 int *keyboard_samples;
 int keyboard_samples_n;
@@ -258,7 +262,14 @@ const short int school_bell_outline_data[] = {0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0
 void draw_image(short int* image_data, int image_width, int image_height, int start_x, int start_y, short int draw_colour);
 
 
-
+void play_game(int); // NEW!!!
+int game_mode = 0;  // NEW!!!
+int rand1;
+int rand2;
+int answer = 0;
+int correct_answer = -1;
+int points = 0;     //
+char points_msg[40] = "Score:   \0";
 
 int main(void)
 {
@@ -295,6 +306,9 @@ int main(void)
     hourglass_sec_to_wait = pom_start_val;
     pomodoro_msg[27] = (char) 1;
     break_msg[29] = (char) 1;
+    rand1 = rand()%9+1;
+    rand2 = rand()%9+1;
+    correct_answer = rand1*rand2;
     
     /* set front pixel buffer to buffer 1 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int)&buffer1; // first store the address in the  back buffer
@@ -318,7 +332,7 @@ int main(void)
         wait_for_v_sync();
         pixel_buffer_start = *(PIXEL_BUF_CTRL_ptr + 1); // new back buffer
 
-        *LEDR_ptr = edit_mode;
+        //*LEDR_ptr = edit_mode;
         // clear_rectangle(num_coords, colour);
         clear_screen(colour);
         if (display_mode == 1) {
@@ -349,6 +363,7 @@ int main(void)
             display_text(21, 57, clear_text);   // character buffer is 80 by 60
             display_text(21, 50, clear_text);
             display_text(21, 52, clear_text);
+            display_text(65, 55, clear_text); // NEW!!!
             display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
             draw_rectangle(dot1, white);
@@ -357,19 +372,19 @@ int main(void)
             display_num(loading1[2] - num_w, loading1[1] - num_l * 1.4, white, sec_digits[0]);
             if (edit_mode==1) { // editing minutes 'ten's
                 x0 = loading1[0];
-                y0 = loading1[1]-num_l*1.4;
+                Y0 = loading1[1]-num_l*1.4;
                 x1 = loading1[0]+num_w;
-                y1 = loading1[1]-num_l*1.4+num_l;
+                Y1 = loading1[1]-num_l*1.4+num_l;
                 delay_count++; 
             } else if (edit_mode==2) { // editing minutes 'one's
                 x0 = loading1[0]+num_w;
-                y0 = loading1[1]-num_l*1.4;
+                Y0 = loading1[1]-num_l*1.4;
                 x1 = loading1[0]+num_w+num_w;
-                y1 = loading1[1]-num_l*1.4+num_l;
+                Y1 = loading1[1]-num_l*1.4+num_l;
                 delay_count++;
             }
             if (edit_mode!=0 && delay_count>4) {
-                clear_rectangle(x0, y0, x1, y1, colour2);
+                clear_rectangle(x0, Y0, x1, Y1, colour2);
             }
             display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 1.4, white, min_digits[0]);
@@ -400,9 +415,25 @@ int main(void)
             draw_hourglass_bottom(190 - hourglass_draw_index);
             draw_hourglass_drip();
             draw_hourglass_frame();
+
+            if (edit_mode==1) { // editing minutes 'ten's
+                x0 = loading1[0];
+                Y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0]+num_w;
+                Y1 = loading1[1]-num_l*1.4+num_l;
+                delay_count++; 
+            } else if (edit_mode==2) { // editing minutes 'one's
+                x0 = loading1[0]+num_w;
+                Y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0]+num_w+num_w;
+                Y1 = loading1[1]-num_l*1.4+num_l;
+                delay_count++;
+            }
+            
             display_text(21, 5, clear_text);   // character buffer is 80 by 60
             display_text(21, 40, clear_text);
             display_text(21, 45, clear_text);
+            display_text(65, 55, clear_text); // NEW!!!
             display_text(21, 57, modes_text);   // character buffer is 80 by 60
             display_num(loading1[0], loading1[1] - num_l * 3.1, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 3.1, white, min_digits[0]);
@@ -410,6 +441,61 @@ int main(void)
             draw_rectangle(dot4, white);
             display_num(loading1[2] - num_w * 2, loading1[1] - num_l * 3.1, white, sec_digits[1]);
             display_num(loading1[2] - num_w, loading1[1] - num_l * 3.1, white, sec_digits[0]);
+        } else if (display_mode==3) {   // NEW!!!
+            draw_rectangle(loading1, white); // display loading bar;
+            draw_rectangle(loading2, white); // display loading bar;
+            if (colour==teal) {
+                tot = small_break_start_val * 60;
+                clear_rectangle(76+57, 17, 115+68, 27, colour2);
+                display_text(21, 45, break_msg);
+            } else if (colour==navy) {
+                tot = big_break_start_val * 60;
+                clear_rectangle(76+57+62, 17, 115+68+61, 27, colour2);
+                display_text(21, 45, break_msg);
+            }
+            display_text(21, 40, session_count_text);
+            for (int i = loading2[1]; i < loading2[3]; i++) {
+                int num = (loading2[2] - loading2[0]) * (tot - min_time * 60 - sec_time) / tot + loading2[0];
+                draw_line(loading2[0], i, num, i, white);
+            }
+            display_text(21, 5, modes_text);   // character buffer is 80 by 60
+            display_text(21, 57, clear_text);   // character buffer is 80 by 60
+            display_text(21, 50, clear_text);
+            display_text(21, 52, clear_text);
+            if (game_mode==1) { // editing minutes 'ten's
+                x0 = loading1[0] + num_w * 2.5;
+                Y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0] + num_w * 3.3;
+                Y1 = loading1[1]-num_l*1.4+num_l;
+                delay_count++; 
+            } else if (game_mode==2) { // editing minutes 'one's
+                x0 = loading1[2] - num_w * 0.7;
+                Y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[2] + num_w * 0.1;
+                Y1 = loading1[1]-num_l*1.4+num_l;
+                delay_count++;
+            } else if (game_mode==3) {
+                delay_count++;
+            }
+            if (game_mode!=0 && delay_count>4) {
+                clear_rectangle(x0, Y0, x1, Y1, colour2);
+                display_text(65, 55, points_msg);
+            } else {
+                display_text(65, 55, clear_text);
+            }
+            display_num(loading1[0] - num_w * 0.2, loading1[1] - num_l * 1.4, white, rand1);
+            display_num(loading1[0] + num_w * 1.2, loading1[1] - num_l * 1.4, white, rand2);
+            draw_line(125, 89, 135, 99, white); // multiplication sign
+            draw_line(125, 90, 136, 99, white);
+            draw_line(135, 89, 125, 99, white);
+            draw_line(136, 89, 126, 99, white);
+
+            draw_line(163, 90, 173, 90, white); // equal sign
+            draw_line(163, 91, 173, 91, white);
+            draw_line(163, 96, 173, 96, white);
+            draw_line(163, 97, 173, 97, white);
+            display_num(loading1[2] - num_w * 0.8, loading1[1] - num_l * 1.4, white, answer/10);
+            display_num(loading1[0] + num_w * 2.4, loading1[1] - num_l * 1.4, white, answer%10);
         }
 
         // draw image icons
@@ -722,7 +808,12 @@ void audio_ISR_timer2(void)
                 else if (!paused) {
                     // fluffing duck
                     // break mode{
-                    play_audio_samples_overlay(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
+                    if (break_music_mode == 1) {
+                        play_audio_samples_overlay(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
+                    }
+                    else if (break_music_mode == 2) {
+                        play_audio_samples_overlay(animal_crossing_30sec_44100_samples, animal_crossing_30sec_44100_num_samples, &animal_crossing_30sec_44100_index, keyboard_samples, keyboard_samples_n, &keyboard_click_louder_44100_index, &keyboard_pressed);    
+                    }
                 }
             }
     
@@ -761,7 +852,13 @@ void audio_ISR_timer2(void)
                 else if (!paused) {
                     // break mode
                     // fluffing duck
-                    play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
+
+                    if (break_music_mode == 1) {
+                        play_audio_samples(fluffing_duck_30sec_44100_samples, fluffing_duck_30sec_44100_num_samples, &fluffing_duck_30sec_44100_index);
+                    }
+                    else if (break_music_mode == 2) {
+                        play_audio_samples(animal_crossing_30sec_44100_samples, animal_crossing_30sec_44100_num_samples, &animal_crossing_30sec_44100_index);
+                    }
                 }
             }
             else if (key_mode == 3) { // alarm
@@ -913,7 +1010,7 @@ void KEY_ISR(void)
             small_break_start_val--;
             min_time = small_break_start_val;
         }
-        else if (!study_mode && min_time == big_break_start_val)
+        else if (!study_mode && min_time == big_break_start_val && study_session_count%4==0)
         {
             big_break_start_val--;
             min_time = big_break_start_val;
@@ -973,41 +1070,51 @@ void PS2_ISR(void)
             case 0x45:
                 // led_display_val = 0;
                 change_edit_status(0);
+                play_game(0);
                 break; // 0
             case 0x16:
                 change_edit_status(1);
+                play_game(1);
                 // led_display_val = 1;
                 break; // 1
             case 0x1E:
                 change_edit_status(2);
+                play_game(2);
                 // led_display_val = 2;
                 break; // 2
             case 0x26:
                 change_edit_status(3);
+                play_game(3);
                 // led_display_val = 3;
                 break; // 3
             case 0x25:
-                change_edit_status(4);                
+                change_edit_status(4); 
+                play_game(4);
                 // led_display_val = 4;
                 break; // 4
             case 0x2E:
                 change_edit_status(5);
+                play_game(5);
                 // led_display_val = 5;
                 break; // 5
             case 0x36:
                 change_edit_status(6);
+                play_game(6);
                 // led_display_val = 6;
                 break; // 6
             case 0x3D:
                 change_edit_status(7);
+                play_game(7);
                 // led_display_val = 7;
                 break; // 7
             case 0x3E:
                 change_edit_status(8);
+                play_game(8);
                 // led_display_val = 8;
                 break; // 8
             case 0x46:
                 change_edit_status(9);
+                play_game(9);
                 // led_display_val = 9;
                 break; // 9
 
@@ -1025,6 +1132,7 @@ void PS2_ISR(void)
                 *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
                 key_mode = 1;
                 sec_time = 0;
+                reset_hourglass_drip();
                 if (colour==red) {
                     min_time = pom_start_val;
                 } else if (colour==teal) {
@@ -1041,6 +1149,7 @@ void PS2_ISR(void)
                 colour = red;
                 display_mode = 1;
                 edit_mode = 0;
+                game_mode = 0;
                 small_break_start_val = 5;
                 big_break_start_val = 15;
                 min_time = pom_start_val;
@@ -1073,6 +1182,14 @@ void PS2_ISR(void)
             case 0x4B:
                 study_music_mode = 2;
                 break; // L
+
+                // break music
+            case 0x32: 
+                break_music_mode = 1;
+                break; // N
+            case 0x3A:
+                break_music_mode = 2;
+                break; // M
 
                 // keyboard click sound effects
             case 0x41: // 
@@ -1428,14 +1545,21 @@ void draw_hourglass_frame()
 
 void toggle_display()
 {
-    if (display_mode == 1)
-    {
-        display_mode = 2;
-    }
-    else if (display_mode == 2)
-    {
-        // clear_rectangle(hourglass_erase);
-        display_mode = 1;
+    if (colour==red) {
+        if (display_mode == 1) {
+            display_mode = 2;
+        } else if (display_mode == 2 || display_mode == 3) {
+            display_mode = 1;
+        }
+    } else {    // does not consider if left or right arrow key
+        if (display_mode < 3 ) {
+            display_mode++;
+        } else if (display_mode == 3) {
+            display_mode = 1;
+        }
+        if (display_mode==3) {
+            game_mode = 3;
+        }
     }
 }
 
@@ -1519,19 +1643,23 @@ void reset_start_time(int start_time)
 {
     min_time = start_time;
     hourglass_sec_to_wait = start_time;
-    hourglass_draw_index = 0;
-    hourglass_drip_start = 0;
-    hourglass_drip_end = 0;
+    reset_hourglass_drip();
     if (start_time==pom_start_val) {
         colour = red;
         colour2 = dark_red;
-    } else if (start_time==small_break_start_val) {
+    } else if (start_time==small_break_start_val && study_session_count%4!=0) {
         colour = teal;
         colour2 = dark_teal;
     } else {
         colour = navy;
         colour2 = dark_navy;
     }
+}
+
+void reset_hourglass_drip() {
+    hourglass_draw_index = 0;
+    hourglass_drip_start = 0;
+    hourglass_drip_end = 0;
 }
 
 void reset_alarm_index()
