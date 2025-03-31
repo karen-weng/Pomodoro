@@ -1,3 +1,4 @@
 # Pomodoro
 
-samples_rooster_alarm.h samples_guitar_30sec_44100.h samples_colourful_flower_30sec_44100.h samples_fluffing_duck_30sec_44100.h samples_boo_44100.h samples_keyboard_click_louder_44100.h samples_keyboard_click_2_44100.h samples_beep_beep_louder_44100.h samples_school_bell_louder_44100.h
+HDRS	:= samples_beep_beep_louder_44100.h samples_colourful_flower_30sec_44100.h samples_fluffing_duck_30sec_44100.h samples_guitar_30sec_44100.h samples_keyboard_click_2_44100.h samples_keyboard_click_louder_44100.h samples_rooster_alarm.h samples_school_bell_louder_44100.h
+
