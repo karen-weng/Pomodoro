@@ -1196,9 +1196,12 @@ void PS2_ISR(void)
                 // break music
             case 0x32: 
                 break_music_mode = 1;
+                break; // B
+            case 0x31:
+                break_music_mode = 2;
                 break; // N
             case 0x3A:
-                break_music_mode = 2;
+                break_music_mode = 3;
                 break; // M
 
                 // keyboard click sound effects
