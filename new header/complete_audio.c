@@ -64,7 +64,6 @@
 #include "samples_school_bell_louder_44100.h"
 
 
-
 // int rooster_index = 0;
 // int school_bell_44100_index = 0;
 // int beep_beep_44100_index = 0;
