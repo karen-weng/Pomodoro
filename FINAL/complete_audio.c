@@ -183,8 +183,8 @@ int x0, y0, x1, y1;
 char modes_text[40] = "Pomodoro     Short Break     Long Break\0";
 char clear_text[40] = "                                       \0";
 volatile char session_count_text[40] = "                  #X                   \0";
-char pomodoro_msg[40] = "            Time to focus!             \0";
-char break_msg[40] = "           Time for a break!           \0";
+volatile char pomodoro_msg[40] = "            Time to focus!             \0";
+volatile char break_msg[40] = "           Time for a break!           \0";
 
 int num_w = 30;
 int num_l = 40;
@@ -293,7 +293,8 @@ int main(void)
     colour2 = dark_red;
     tot = min_time*60;
     hourglass_sec_to_wait = pom_start_val;
-
+    pomodoro_msg[26] = (char) 1;
+    break_msg[29] = (char) 1;
     
     /* set front pixel buffer to buffer 1 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int)&buffer1; // first store the address in the  back buffer
@@ -1018,14 +1019,37 @@ void PS2_ISR(void)
                     change_edit_status(-2);
                 }
                 break;
-            case 0x2D: // right now deosnt care if it is currently alarm or not
+                case 0x2D: // right now deosnt care if it is currently alarm or not
                 // led_display_val = 256;
                 // recording = false;
-                if (study_mode && min_time==pom_start_val) {
-                    study_session_count = 1;
-                    session_count_text[19] = study_session_count+'0';
+                *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
+                key_mode = 1;
+                sec_time = 0;
+                if (colour==red) {
+                    min_time = pom_start_val;
+                } else if (colour==teal) {
+                    min_time = small_break_start_val;
+                } else {
+                    min_time = big_break_start_val;
                 }
-                break; // R
+                break;  // R -- custom reset
+            case 0x2C:   // T -- global reset
+                *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
+                key_mode = 1;
+                study_mode = true;
+                pom_start_val = 25;
+                colour = red;
+                display_mode = 1;
+                edit_mode = 0;
+                small_break_start_val = 5;
+                big_break_start_val = 15;
+                min_time = pom_start_val;
+                sec_time = 0;
+                study_session_count = 1;
+                session_count_text[19] = study_session_count+'0';
+                reset_start_time(min_time);
+                //reset_alarm_index();
+                break;  
 
                 // alarm modes sound effects
             case 0x43: 
