@@ -1123,6 +1123,8 @@ void PS2_ISR(void)
                 break; // tab
             case 0x29:
                 // led_display_val = 256;
+                change_edit_status(-2);     // exit edit mode
+                pressed_enter();
                 break; // space
             case 0x66:
                 // led_display_val = 256;
