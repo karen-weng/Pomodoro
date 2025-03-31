@@ -1,7 +1,7 @@
 from PIL import Image
 
 # Load image
-image_name = "mute_denoise"
+image_name = "confetti"
 image_path = image_name+".png"
 img = Image.open(image_path).convert("RGB")  # Convert to RGB format
 
