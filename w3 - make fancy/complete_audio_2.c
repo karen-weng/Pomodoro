@@ -429,7 +429,9 @@ int main(void)
                 Y1 = loading1[1]-num_l*1.4+num_l;
                 delay_count++;
             }
-            
+            if (edit_mode!=0 && delay_count>4) {
+                clear_rectangle(x0, Y0, x1, Y1, colour2);
+            }
             display_text(21, 5, clear_text);   // character buffer is 80 by 60
             display_text(21, 40, clear_text);
             display_text(21, 45, clear_text);
@@ -922,6 +924,7 @@ void KEY_ISR(void)
         }
         else if (key_mode == 3)
         { // update next countdown start value
+            game_mode = 0;
             study_mode = !study_mode;
             if (study_mode)
             {
@@ -1687,6 +1690,31 @@ void draw_image(short int* image_data, int image_width, int image_height, int st
                     plot_pixel(start_x + x, start_y + y, image_colour); // Draw pixel
                 }
             }
+        }
+    }
+}
+
+void play_game(int num) {   // NEW!!!
+    // 1 for tens, 2 for ones, 
+    if (key_mode==2) {
+        if (game_mode==1) {
+            answer = num;
+            game_mode = 2;
+        } else if (game_mode==2) {
+            answer = answer*10+num;
+            game_mode = 3;
+        }
+        if (game_mode==3 || answer==correct_answer || answer>correct_answer) {
+            if (answer==correct_answer) {
+                points++;
+            }
+            rand1 = rand()%9+1;
+            rand2 = rand()%9+1;
+            correct_answer = rand1*rand2;
+            answer = 0;
+            game_mode = 1;
+            points_msg[8] = (points/10)+'0';
+            points_msg[9] = (points%10)+'0';
         }
     }
 }
