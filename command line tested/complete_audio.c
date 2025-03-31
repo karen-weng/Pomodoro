@@ -402,6 +402,21 @@ int main(void)
             draw_hourglass_bottom(190 - hourglass_draw_index);
             draw_hourglass_drip();
             draw_hourglass_frame();
+
+            if (edit_mode==1) { // editing minutes 'ten's
+                x0 = loading1[0];
+                y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0]+num_w;
+                y1 = loading1[1]-num_l*1.4+num_l;
+                delay_count++; 
+            } else if (edit_mode==2) { // editing minutes 'one's
+                x0 = loading1[0]+num_w;
+                y0 = loading1[1]-num_l*1.4;
+                x1 = loading1[0]+num_w+num_w;
+                y1 = loading1[1]-num_l*1.4+num_l;
+                delay_count++;
+            }
+            
             display_text(21, 5, clear_text);   // character buffer is 80 by 60
             display_text(21, 40, clear_text);
             display_text(21, 45, clear_text);
