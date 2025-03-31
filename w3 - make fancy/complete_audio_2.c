@@ -1690,3 +1690,28 @@ void draw_image(short int* image_data, int image_width, int image_height, int st
         }
     }
 }
+
+void play_game(int num) {   // NEW!!!
+    // 1 for tens, 2 for ones, 
+    if (key_mode==2) {
+        if (game_mode==1) {
+            answer = num;
+            game_mode = 2;
+        } else if (game_mode==2) {
+            answer = answer*10+num;
+            game_mode = 3;
+        }
+        if (game_mode==3 || answer==correct_answer || answer>correct_answer) {
+            if (answer==correct_answer) {
+                points++;
+            }
+            rand1 = rand()%9+1;
+            rand2 = rand()%9+1;
+            correct_answer = rand1*rand2;
+            answer = 0;
+            game_mode = 1;
+            points_msg[8] = (points/10)+'0';
+            points_msg[9] = (points%10)+'0';
+        }
+    }
+}
