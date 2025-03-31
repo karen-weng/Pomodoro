@@ -183,8 +183,8 @@ int x0, y0, x1, y1;
 char modes_text[40] = "Pomodoro     Short Break     Long Break\0";
 char clear_text[40] = "                                       \0";
 volatile char session_count_text[40] = "                  #X                   \0";
-char pomodoro_msg[40] = "            Time to focus!             \0";
-char break_msg[40] = "           Time for a break!           \0";
+volatile char pomodoro_msg[40] = "            Time to focus!             \0";
+volatile char break_msg[40] = "           Time for a break!           \0";
 
 int num_w = 30;
 int num_l = 40;
@@ -293,7 +293,8 @@ int main(void)
     colour2 = dark_red;
     tot = min_time*60;
     hourglass_sec_to_wait = pom_start_val;
-
+    pomodoro_msg[27] = (char) 1;
+    break_msg[29] = (char) 1;
     
     /* set front pixel buffer to buffer 1 */
     *(PIXEL_BUF_CTRL_ptr + 1) = (int)&buffer1; // first store the address in the  back buffer
@@ -345,7 +346,7 @@ int main(void)
                 draw_line(loading2[0], i, num, i, white);
             }
             display_text(21, 5, modes_text);   // character buffer is 80 by 60
-            display_text(21, 58, clear_text);   // character buffer is 80 by 60
+            display_text(21, 57, clear_text);   // character buffer is 80 by 60
             display_text(21, 50, clear_text);
             display_text(21, 52, clear_text);
             display_num(loading1[0], loading1[1] - num_l * 1.4, white, min_digits[1]);
@@ -380,15 +381,15 @@ int main(void)
         else if (display_mode == 2) {
             if (colour==red) {
                 tot = pom_start_val * 60;
-                clear_rectangle(80, 227, 119, 237, colour2);
+                clear_rectangle(80, 225, 119, 235, colour2);
                 display_text(21, 52, pomodoro_msg);
             } else if (colour==teal) {
                 tot = small_break_start_val * 60;
-                clear_rectangle(80+53, 227, 119+64, 237, colour2);
+                clear_rectangle(80+53, 225, 119+64, 235, colour2);
                 display_text(21, 52, break_msg);
             } else {
                 tot = big_break_start_val * 60;
-                clear_rectangle(80+53+62, 227, 119+64+61, 237, colour2);
+                clear_rectangle(80+53+62, 225, 119+64+61, 235, colour2);
                 display_text(21, 52, break_msg);
             }
 
@@ -402,7 +403,7 @@ int main(void)
             display_text(21, 5, clear_text);   // character buffer is 80 by 60
             display_text(21, 40, clear_text);
             display_text(21, 45, clear_text);
-            display_text(21, 58, modes_text);   // character buffer is 80 by 60
+            display_text(21, 57, modes_text);   // character buffer is 80 by 60
             display_num(loading1[0], loading1[1] - num_l * 3.1, white, min_digits[1]);
             display_num(loading1[0] + num_w, loading1[1] - num_l * 3.1, white, min_digits[0]);
             draw_rectangle(dot3, white);
@@ -1018,14 +1019,37 @@ void PS2_ISR(void)
                     change_edit_status(-2);
                 }
                 break;
-            case 0x2D: // right now deosnt care if it is currently alarm or not
+                case 0x2D: // right now deosnt care if it is currently alarm or not
                 // led_display_val = 256;
                 // recording = false;
-                if (study_mode && min_time==pom_start_val) {
-                    study_session_count = 1;
-                    session_count_text[19] = study_session_count+'0';
+                *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
+                key_mode = 1;
+                sec_time = 0;
+                if (colour==red) {
+                    min_time = pom_start_val;
+                } else if (colour==teal) {
+                    min_time = small_break_start_val;
+                } else {
+                    min_time = big_break_start_val;
                 }
-                break; // R
+                break;  // R -- custom reset
+            case 0x2C:   // T -- global reset
+                *(TIMER_ptr + 0x1) = 0xB; // 0b1011 (stop, cont, ito)
+                key_mode = 1;
+                study_mode = true;
+                pom_start_val = 25;
+                colour = red;
+                display_mode = 1;
+                edit_mode = 0;
+                small_break_start_val = 5;
+                big_break_start_val = 15;
+                min_time = pom_start_val;
+                sec_time = 0;
+                study_session_count = 1;
+                session_count_text[19] = study_session_count+'0';
+                reset_start_time(min_time);
+                //reset_alarm_index();
+                break;  
 
                 // alarm modes sound effects
             case 0x43: 
